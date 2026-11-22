@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scan simulator and graph risk tester</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#14213d;--mut:#5b6678;--grid:#dde2ea;--line:#c8cfdb;--acc:#14213d;--accfg:#fff;--ok:#14946a;--md:#c77a14;--hi:#d4434b;--c1:#2f6fed;--c2:#14946a;--c3:#d9822b;--c4:#9b4fd0;--c5:#d4434b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1522;--panel:#16203a;--ink:#e8edf7;--mut:#9aa6bd;--grid:#26324f;--line:#33415f;--acc:#e8edf7;--accfg:#0e1522;--ok:#3fcf9f;--md:#f0a458;--hi:#ff7b83;--c1:#6b9bff;--c2:#3fcf9f;--c3:#f0a458;--c4:#c08ae8;--c5:#ff7b83;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+main{max-width:940px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0 0 4px}
+p.lede{margin:0 0 14px;color:var(--mut);max-width:66ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;font:inherit;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{font:12.5px/1.45 ui-monospace,Menlo,monospace;min-height:150px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button.b{font:inherit;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:var(--accfg)}
+button.b.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+#status{color:var(--mut);font-size:13px}
+canvas{width:100%;display:block}
+h2{font-size:14px;margin:0 0 6px;font-weight:600}
+.tw{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 10px;text-align:left;border-bottom:1px solid var(--grid)}
+th{position:sticky;top:0;background:var(--panel)}
+.n{text-align:right}
+.leg,.chk{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.leg{padding:0 8px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.chk label{flex-direction:row;align-items:center;gap:6px;color:var(--ink)}
+.chk input{width:auto}
+small{color:var(--mut)}
+.score{display:flex;gap:16px;align-items:center}
+.big{font-size:46px;font-weight:600;line-height:1}
+.tag{color:#fff;padding:2px 8px;border-radius:6px;font-size:12.5px}
+.fl{margin:12px 0 0;padding-left:18px}.fl li{margin-bottom:4px}
+.ck span{display:flex;align-items:center;gap:6px;color:var(--ink)}.ck input{width:auto}
+.pos{color:var(--ok)}.neg{color:var(--hi)}
+#pnote{font-size:13px;color:var(--mut);margin-top:8px}#pnote b{color:var(--ink)}
+.sec{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.sec ul{margin:6px 0;padding-left:18px}.sec li{margin-bottom:5px}
+details{margin-top:12px}summary{cursor:pointer;font-weight:600;font-size:14px}
+#tout{min-height:160px;margin-top:8px}
+.gapb[hidden]{display:none}
+.chk span:first-child{color:var(--mut)}
+#tp.live .tin{display:none!important}#tp.live{margin-top:-4px}
+.lvhd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+.seg2{display:inline-flex;gap:4px;flex-wrap:wrap}.seg2 button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:4px 10px;border-radius:7px;cursor:pointer}.seg2 button[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.lvl{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:420px;overflow:auto}
+.lvr{display:grid;grid-template-columns:44px 1fr auto auto;gap:10px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer}
+.lvr.on{border-color:var(--c1);box-shadow:inset 0 0 0 1px var(--c1)}
+.lvr img,.lvr .ph{width:44px;height:56px;border-radius:7px;object-fit:cover;background:linear-gradient(135deg,#7b5cff,#2fd3c7)}
+.lvr .nm{font-weight:600;font-size:14px}.lvr .sb{font-size:12px;color:var(--mut)}
+.lvr .vw{text-align:right;font-weight:600;font-size:14px}.lvr .vw small{display:block;font-weight:400}
+.lvr .bd{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.lvr .bdg{padding:3px 8px;font-size:12px}
+.lvstat{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin-top:10px}.lvstat span{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:3px 9px}.lvstat .warn{border-color:var(--hi);color:var(--hi)}
+.aibox{margin-top:8px;border:1px solid #2a2b31;background:#16171b;border-radius:9px;padding:9px 12px;font-size:12.5px;color:#c9cad0}.aibox b{color:#f1f2f5}.aibox ul{margin:6px 0 0;padding-left:18px}.aibox .t{color:#8d8f97}
+.aic{font-size:10.5px!important;padding:1px 6px!important}
+.rvnote{margin-top:10px;font-size:12.5px;color:#f0a458;background:rgba(240,164,88,.1);border-radius:8px;padding:6px 10px}
+.simb{background:rgba(155,79,208,.15)!important;color:#c08ae8!important}
+.pill[data-m=eng]{color:#e6c35c}
+.lvempty{color:var(--mut);font-size:13.5px;margin:6px 0}
+.lvact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.rvb .apb,.rvb .rjb{white-space:nowrap}
+img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
+.pill{gap:6px}.pill .lb{display:none}.pill.on .lb{display:inline}
+.pill[data-m=views]{color:#6aa7f5}.pill[data-m=likes]{color:#ff6f91}.pill[data-m=comments]{color:#ffa24c}.pill[data-m=shares]{color:#3fd6a5}
+.pill.on{box-shadow:inset 0 0 0 1.5px currentColor;border-color:transparent}.pill.on .lb{color:#e9eaee}
+.pill b{color:inherit}
+.xb.on{background:#e9eaee;color:#1c1c1e}.crc.reg .xb.on{background:var(--acc);color:var(--accfg)}
+.bdg.hi{position:relative}.tipw{position:relative;display:inline-flex}.tipw .tip{display:none;position:absolute;right:0;top:calc(100% + 8px);width:290px;background:#1d1e23;border:1px solid #2e2f36;border-radius:12px;padding:12px 14px;color:#e9eaee;font-size:13px;font-weight:400;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.4)}.tipw:hover .tip{display:block}.tip b{display:block;font-size:14px;margin-bottom:4px}
+.apb.gr{background:#3a3b41;color:#e9eaee;box-shadow:none}
+.bot .op{background:#2a2b31;border-radius:8px;padding:5px 11px;color:#e9eaee;font-weight:600;text-decoration:none;white-space:nowrap}
+.bot .ms{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.bot .tr{opacity:.7;font-weight:400}
+#svl{margin-top:10px;font-size:13px}#svl .sv{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}#svl button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:7px;padding:3px 9px;cursor:pointer}
+.why li b{font-weight:600}
+/* CR submission review card */
+.crx,.crf{display:none}
+.crc.rv{background:#111216;border:1px solid #23242a}
+.crc.rv .crx,.crc.rv .crf{display:block}.crc.rv .rd{display:none}.crc.rv #t1{color:#8d8f97;font-weight:400;font-size:12.5px}
+.crx{padding:2px 8px 12px;border-bottom:1px solid #23242a;margin-bottom:10px}
+.rvh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.rvw{display:flex;align-items:center;gap:11px}
+.av{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 200deg,#7b5cff,#2fd3c7,#ff7ab6,#7b5cff);flex:none}
+.rvn{font-weight:600;font-size:15.5px;color:#f1f2f5}.rvs{font-size:12.5px;color:#9a9ca3;display:flex;gap:8px;align-items:center;margin-top:1px}
+.idc{background:#24252b;border:0;border-radius:6px;padding:1px 7px;font:11.5px ui-monospace,Menlo,monospace;color:#c9cad0;cursor:pointer}
+.rvb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bdg{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;font-size:13px;font-weight:600}
+.bdg.hi,.bdg.rj{background:rgba(255,92,108,.13);color:#ff7380}.bdg.md{background:rgba(240,164,88,.13);color:#f0a458}.bdg.lo,.bdg.ok{background:rgba(63,207,159,.12);color:#3fcf9f}.bdg.pd{background:#24252b;color:#c9cad0}
+.bdg i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.rjb,.apb{border:0;border-radius:10px;padding:8px 15px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.rjb{background:#ff6b7a;color:#fff}.apb{background:transparent;color:#3fcf9f;box-shadow:inset 0 0 0 1px rgba(63,207,159,.5)}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pill{display:inline-flex;gap:7px;align-items:center;border:1px solid #26272d;background:#16171b;border-radius:10px;padding:5px 11px;font:inherit;font-size:13px;color:#d8d9de;cursor:default}
+.pill.on{border-color:#5b8def;box-shadow:inset 0 0 0 1px #5b8def;color:#e9eefc}
+.pill svg{width:14px;height:14px}.pill b{font-weight:600}
+.crf{padding:10px 8px 2px}
+.rvm{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rvm div{background:#16171b;border:1px solid #23242a;border-radius:9px;padding:10px 13px;display:flex;justify-content:space-between;font-size:13.5px;color:#9a9ca3}
+.rvm b{color:#f1f2f5;font-weight:600}
+.bot{margin-top:8px;border-radius:9px;padding:10px 13px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.bot.hi{background:linear-gradient(90deg,rgba(255,92,108,.24),rgba(255,92,108,.07));color:#ffd5d9}
+.bot.md{background:linear-gradient(90deg,rgba(240,164,88,.22),rgba(240,164,88,.06));color:#ffe3c6}
+.bot.lo{background:linear-gradient(90deg,rgba(63,207,159,.18),rgba(63,207,159,.05));color:#cff5e8}
+.bot b{font-weight:600}.bot a{color:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+/* graph cards: CR Mod POV (dark) is the default, .reg is the regular graph */
+.crc{background:#1c1c1e;color:#e9eaee;border-radius:14px;padding:12px 8px 8px;margin-bottom:12px;position:relative}
+.crh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 8px;font-weight:600;font-size:14px}
+.hctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rd{min-height:20px;padding:2px 8px 0;font-size:12.5px;color:#b4b6ba}
+.cc1{height:clamp(250px,46vh,440px);touch-action:pan-y}.cc2{height:clamp(110px,18vh,170px);touch-action:pan-y}
+.seg{display:inline-flex;background:#2c2c2e;border-radius:9px;padding:2px}
+.seg button{font:inherit;font-size:12.5px;border:0;background:transparent;color:#b4b6ba;padding:5px 10px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#e9eaee;color:#1c1c1e}
+.xb{font:inherit;font-size:14px;line-height:1;border:0;background:#2c2c2e;color:#e9eaee;border-radius:8px;padding:7px 10px;cursor:pointer}
+.crc.reg{background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:14px}
+.crc.reg .seg,.crc.reg .xb{background:var(--bg)}.crc.reg .xb{color:var(--ink);border:1px solid var(--line)}
+.crc.reg .seg button{color:var(--mut)}.crc.reg .seg button[aria-pressed=true]{background:var(--acc);color:var(--accfg)}
+.crc.reg .cc1{height:290px;touch-action:auto}.crc.reg .cc2{height:170px;touch-action:auto}.crc.reg .rd{color:var(--mut)}
+/* expanded view */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);padding:max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px));overflow:auto}
+.ov[hidden]{display:none}
+.ov .crc{max-width:1500px;margin:0 auto}
+#oc1{height:max(260px,calc(100dvh - 330px))}#oc2{height:190px}
+.ov .sub{margin-top:10px}
+</style></head><body><main>
+<h1>Scan simulator and graph risk tester</h1>
+<p class="lede">Run the five preset shapes through a scanner, then paste a clipper’s scan log and see how close it sits to each preset, with a bot score and flags.</p>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div class="panel" id="ctlpanel">
+<div class="ctl">
+<label>Scans<input id="n" type="number" min="10" max="1500"></label>
+<label>Interval (minutes)<input id="m" type="number" min="5" max="720"></label>
+<label>Total views<select id="tot"><option value="5000">5,000</option><option value="10000">10,000</option></select></label>
+<label>Growth window<select id="win"><option value="0">Whole run</option><option value="720">12 hours</option><option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option><option value="21600">15 days</option></select></label>
+<label>Scan noise (%)<input id="noise" type="number" min="0" max="30"></label>
+<label>First scan at<input id="start" type="datetime-local" value="2026-10-03T01:38"></label>
+</div>
+<div class="btns"><button class="b" id="run">Run scanner</button><button class="b alt" id="inst">Show all scans</button><button class="b alt" id="csv">Download CSV</button><span id="status"></span></div>
+<small>Choosing a growth window sets the run to the window plus 25% plateau. Views are flat after the window ends.</small>
+</div>
+<div class="panel" id="lp" style="display:none">
+<details id="lvc"><summary>Tracker connection</summary>
+<small>Paste the web app link and key from your Google Sheet tracker (tracker.gs). Saved on this device only.</small>
+<div class="ctl" style="margin-top:8px"><label>Tracker link<input id="lurl" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false"></label><label>Key<input id="lkey" spellcheck="false"></label><label>Your mod name<input id="lby" placeholder="shown on decisions"></label></div>
+<div class="btns"><button class="b" id="lconn">Connect</button></div></details>
+<div id="lvstat" class="lvstat"></div>
+<h2 style="margin-top:12px">Submit a reel</h2>
+<div class="ctl"><label style="grid-column:span 2">Reel link<input id="lvlink" placeholder="https://www.instagram.com/reel/…" spellcheck="false"></label><label>Clipper name<input id="lvname"></label><label>Payout rate ($ per 1K)<input id="lvrate" type="number" min="0" step="0.01"></label><label>Max payout ($)<input id="lvcap" type="number" min="0" step="1" placeholder="no cap"></label></div>
+<div class="btns"><button class="b" id="lvsub">Submit and start tracking</button><span id="lvmsg" style="font-size:13px;color:var(--mut)"></span></div>
+<details id="simd" style="margin-top:12px"><summary>Simulate a reel (demo data, not from Instagram)</summary>
+<small>Real organic reels will rarely trip the bot checker, so this makes fake reels from the 5 presets. They go through the same graphs and checks, are marked SIMULATED, and are stored on this device only.</small>
+<div class="ctl" style="margin-top:8px"><label>Shape<select id="simp"></select></label>
+<label>Engagement<select id="sims"><option value="auto">Auto (matches the shape)</option><option value="organic">Organic</option><option value="low">Bought views (low engagement)</option><option value="lock">Bought package (likes move with views)</option></select></label>
+<label>Final views<input id="simv" type="number" min="1000" step="1000" value="100000"></label>
+<label>Growth window (days)<input id="simw" type="number" min="0.5" max="15" step="0.5" value="4"></label>
+<label>Days tracked so far<input id="simd2" type="number" min="1" max="15" step="1" value="10"></label></div>
+<div class="btns"><button class="b alt" id="simadd">Add simulated reel</button></div></details>
+<div class="lvhd"><h2>Submissions</h2><div class="seg2" id="lvf"><button data-f="all">All</button><button data-f="review">Needs review</button><button data-f="flag">Flagged</button><button data-f="approved">Approved</button><button data-f="rejected">Rejected</button></div></div>
+<div id="lvlist" class="lvl"><p class="lvempty">Connect the tracker to see submissions.</p></div>
+<div id="lvst" style="font-size:12.5px;color:var(--mut);margin-top:8px"></div>
+</div>
+<div class="panel" id="tp" style="display:none">
+<h2 class="tin">Test a clipper’s graph</h2>
+<small class="tin">Paste the scan log from your tracker. Both layouts work: one scan per line (<code>12, 148, Nov 20, 08:34 AM</code>), or your tracker’s block layout with scan number, time, <code>+views</code> and <code>=total</code> on separate lines. Times without AM/PM are read in time order.</small>
+<textarea class="tin" id="paste" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+500&#10;=500&#10;2&#10;Nov 20, 1:24&#10;+120&#10;=620"></textarea>
+<div class="ctl" style="margin-top:10px">
+<label>Compare head to head with<select id="tgt"></select></label>
+<label class="ck tin"><span><input type="checkbox" id="base"> Scan 1 is the starting count</span><small>Views that existed before tracking began. Ticked automatically when scan 1 is much bigger than the rest.</small></label>
+</div>
+<details id="subd" class="tin"><summary>Submission details (optional): engagement, payout, name</summary>
+<div class="ctl" style="margin-top:8px">
+<label>Creator / clip name<input id="sname" placeholder="Clipper"></label>
+<label>Posted on<input id="sdate" type="date"></label>
+<label>Likes<input id="slk" type="number" min="0"></label>
+<label>Comments<input id="scm" type="number" min="0"></label>
+<label>Shares<input id="ssh" type="number" min="0"></label>
+<label>Payout rate ($ per 1K views)<input id="scpm" type="number" min="0" step="0.01"></label>
+<label>Max payout ($)<input id="scap" type="number" min="0" step="1" placeholder="no cap"></label>
+</div></details>
+<div class="btns tin"><button class="b" id="score">Score and compare</button>
+<select id="smp" style="width:auto"><option value="">Fill a test sample…</option><option value="ex">Sample: Nov 20 clip (10K, your tracker format)</option></select><button class="b alt" id="clr">Clear</button></div>
+<div id="svl" class="tin"></div>
+<div id="pnote"></div>
+<div class="chk" id="chk"><span>Also draw:</span></div>
+<div id="res" style="margin-top:14px"></div>
+</div>
+<div class="crc"><div class="crx" id="crx"></div><div class="crh"><span id="t1">Cumulative views</span><div class="hctl">
+<div class="seg" role="group" aria-label="Graph style"><button data-pov="cr" title="Content Rewards Mod POV">CR Mod POV</button><button data-pov="reg" title="Regular graph">Regular</button></div>
+<div class="seg" role="group" aria-label="What to plot"><button data-met="cum">Cumulative</button><button data-met="per">Per scan</button><button data-met="rate">Per hour</button><button data-met="gap" class="gapb">Gap</button></div>
+<button class="xb" id="cmpb" title="Overlay the selected preset" hidden>Compare</button><button class="xb" id="saveb" title="Save this graph to compare later" hidden>Save graph</button><button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div>
+<div class="rd" id="rd"></div><canvas id="c1" class="cc1"></canvas><div class="leg" id="leg"></div><div class="crf" id="crf"></div></div>
+<div class="crc" id="b2"><div class="crh"><span id="t2">Views added per scan</span><div class="hctl"><button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div><canvas id="c2" class="cc2"></canvas></div>
+<div class="panel" id="p3"><h2>Scan log</h2><div class="tw"><table><thead><tr><th class="n">SCANS</th><th class="n">views add recorded</th><th>time captured</th><th class="n">cumulative views</th></tr></thead><tbody id="tb"></tbody></table></div>
+<small>Synthetic practice data from a simulator. Not real campaign activity; don’t use it as evidence.</small></div>
+</main>
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Expanded graph"><div class="crc">
+<div class="crh"><span id="ot1"></span><div class="hctl">
+<div class="seg" role="group" aria-label="Graph style"><button data-pov="cr">CR Mod POV</button><button data-pov="reg">Regular</button></div>
+<div class="seg" role="group" aria-label="What to plot"><button data-met="cum">Cumulative</button><button data-met="per">Per scan</button><button data-met="rate">Per hour</button><button data-met="gap" class="gapb">Gap</button></div>
+<button class="xb" id="ox" title="Close (Esc)" aria-label="Close expanded view">✕</button></div></div>
+<div class="rd" id="ord"></div><canvas id="oc1"></canvas><div class="leg" id="oleg"></div>
+<div class="sub" id="ob2"><div class="crh"><span id="ot2"></span></div><canvas id="oc2"></canvas></div>
+</div></div>
+<script>
+/*PURE*/
+const NM=['straightguy','perfectcurve','staircase','imperfect curve','climbing line'];
+const P=[[0,1200,2300,3300,4200,5100,5900,6700,7400,8000,8600,9100,9500],[0,3000,5200,6600,7500,8100,8600,9100,9500,9750,9900,9980,10050],[0,0,3000,3000,3000,6500,6500,6500,10000,10000,10000,10000,10000],[0,2200,3800,4800,5500,6000,6300,8300,8700,8950,9150,9300,9400],[0,900,1800,2000,3100,4200,4400,5600,6700,6900,8000,9100,10000]];
+const PRIOR=[70,8,95,40,80];
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const clip=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
+const med=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),k=s.length>>1;return s.length%2?s[k]:(s[k-1]+s[k])/2};
+function prng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(1-r()))*Math.cos(6.2832*r())}
+function fmt(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;const z=x=>String(x).padStart(2,'0');return MO[d.getMonth()]+' '+z(d.getDate())+', '+z(h)+':'+z(d.getMinutes())+' '+ap}
+function fmtS(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return MO[d.getMonth()]+' '+d.getDate()+', '+h+':'+String(d.getMinutes()).padStart(2,'0')+' '+ap}
+// share of a preset's final views reached at share x of its growth time (exact piecewise-linear preset)
+function F(p,x){if(x<=0)return 0;if(x>=1)return 1;const f=x*12,i=Math.min(11,Math.floor(f));return(p[i]+(p[i+1]-p[i])*(f-i))/p[12]}
+// x where a preset reaches 99.5% of its views (its growth end), and the preset rescaled so that point sits at x=1.
+// Clipper graphs are measured to the same 99.5% point, so both sides of every comparison end growth at x=1.
+const epOf=p=>{const f=p.map(v=>v/p[12]),k=f.findIndex(v=>v>=0.995);return k<=0?1:(k-1+(0.995-f[k-1])/(f[k]-f[k-1]))/12};const EP=P.map(epOf);
+function Fs(g,x){return x<=0?0:F(P[g],x*EP[g])}
+const FsPts=g=>P[g].map((y,k)=>[k/12/EP[g],y/P[g][12]]);
+// share of a preset's growth TIME (x in 0..1) where its rate is under 10% of its mean rate: same measure the clipper gets
+const pzOf=g=>{const N=1200;let z=0;for(let k=0;k<N;k++){const x=(k+.5)/N,r=(Fs(g,x+.5/N)-Fs(g,x-.5/N))*N;if(r<0.1*Fs(g,1))z++}return z/N};const PZ=P.map((p,g)=>pzOf(g));
+function sim(g,c,t0){const{n,m,tot,noise,win}=c,p=P[g],fin=p[12],W=win?Math.min(win,n*m):n*m;
+ const cum=k=>{const f=Math.min(1,k*m/W)*12,i=Math.min(11,Math.floor(f));return tot*(p[i]+(p[i+1]-p[i])*(f-i))/fin};
+ let raw=[];for(let k=1;k<=n;k++)raw.push(cum(k)-cum(k-1));
+ const r=prng(g*7919+n*31+m);if(noise>0)raw=raw.map(v=>v>0?v*Math.max(0,1+noise/100*gauss(r)):0);
+ const s=mean(raw)*n;raw=raw.map(v=>v*tot/s);const fl=raw.map(Math.floor);let rem=tot-fl.reduce((a,b)=>a+b,0);
+ raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,rem).forEach(x=>fl[x[1]]++);
+ let cu=0;return fl.map((v,i)=>{cu+=v;return{i:i+1,v,c:cu,t:new Date(t0+i*m*60000)}})}
+/* Reads one-line logs ("12, 148, Nov 20, 08:34 AM", CSV) and block logs (scan no / time / +views / =total on separate lines).
+   Times without AM/PM are read in order: each time takes the earliest reading that is not before the previous scan. */
+function parse(txt,yr){yr=yr||new Date().getFullYear();
+ const recs=[];let cur={};const push=()=>{if(Object.keys(cur).length)recs.push(cur);cur={}},set=(k,v)=>{if(cur[k]!==undefined)push();cur[k]=v};
+ const DT=/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?,?\s+(?:at\s+)?(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
+ const ISO=/(\d{4})-(\d{1,2})-(\d{1,2})[T\s]+(\d{1,2}):(\d{2})/,DMY=/(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
+ txt.split(/\r?\n/).forEach(line=>{let l=' '+line.replace(/["']/g,' ')+' ',dt=null,m;
+  if((m=DT.exec(l))){const mi=MO.findIndex(x=>x.toLowerCase()==m[1].slice(0,3).toLowerCase());if(mi>=0){dt={mo:mi,d:+m[2],y:m[3]?+m[3]:null,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}}
+  if(!dt&&(m=ISO.exec(l))){dt={mo:+m[2]-1,d:+m[3],y:+m[1],h:+m[4],mi:+m[5],ap:null,h24:1};l=l.replace(m[0],' ')}
+  if(!dt&&(m=DMY.exec(l))){let a=+m[1],b=+m[2];if(b>12)[a,b]=[b,a];const y=+m[3]<100?2000+ +m[3]:+m[3];dt={mo:b-1,d:a,y,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}
+  const plus=[...l.matchAll(/\+\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/\+\s*\d[\d,]*/g,' ');
+  const eq=[...l.matchAll(/=\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/=\s*\d[\d,]*/g,' ');
+  let ns=l.match(/\d+/g)||[];
+  if(ns.length>=3&&ns.slice(2).every(s=>s.length==3)&&ns[1].length<=3)ns=[ns[0],ns.slice(1).join('')]; // "5, 1,279" -> 5 and 1279
+  if(!dt&&!plus.length&&!eq.length&&!ns.length)return;
+  if(ns.length>=2){if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0];set('v',+ns[1])}
+  else if(ns.length==1){if(cur.i!==undefined&&cur.v===undefined&&cur.dt&&!plus.length)set('v',+ns[0]);else{if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0]}}
+  if(dt)set('dt',dt);if(plus.length)set('v',plus[0]);if(eq.length)set('c',eq[0])});
+ push();
+ const rows=[],notes=[];let pc=0,bad=0,noAP=0,prev=null,yc=yr,lm=null,flip=0;
+ recs.forEach(r=>{let v=r.v;if(v===undefined){if(r.c===undefined)return;v=r.c-pc}
+  if(r.c!==undefined&&r.v!==undefined&&r.c!==pc+r.v)bad++;
+  pc=r.c!==undefined?r.c:pc+v;let t=null;
+  if(r.dt){const d=r.dt;if(d.y!=null)yc=d.y;else if(lm!=null&&d.mo<lm-6)yc++;lm=d.mo;
+   const day=new Date(d.y!=null?d.y:yc,d.mo,d.d).getTime()/60000;let hs;
+   if(d.ap)hs=[d.h%12+(d.ap=='p'?12:0)];else if(d.h24||d.h>12||d.h==0)hs=[d.h];else{noAP++;hs=[d.h%12,d.h%12+12]}
+   const ts=hs.map(h=>day+h*60+d.mi);
+   if(prev==null)t=ts[0];else{const fw=ts.filter(x=>x>=prev);t=fw.length?Math.min(...fw):Math.max(...ts)}
+   if(hs.length>1&&t==ts[1])flip++;prev=t}
+  rows.push({i:r.i!==undefined?r.i:rows.length+1,v,t,c:r.c})});
+ if(noAP)notes.push('Times have no AM/PM, so they were read in order from the first scan as AM'+(flip?'; '+flip+' later scan'+(flip>1?'s were':' was')+' read as PM to keep time moving forward':'')+'.');
+ if(bad)notes.push(bad+' scan'+(bad>1?'s have':' has')+' a running total (=) that does not match the views added (+). The + values were used.');
+ if(rows.some(r=>r.t===null)&&rows.some(r=>r.t!==null))notes.push('Some scans have no time, so all scans were treated as evenly spaced.');
+ rows.notes=notes;return rows}
+// first scan looks like the starting count (views that existed before tracking began)
+function looksBase(rows){if(rows.length<4)return false;const m=med(rows.slice(1,Math.min(rows.length,21)).map(r=>r.v));return rows[0].v>2.5*m&&rows[0].v>0}
+function score(rows,opt){opt=opt||{};
+ const flags=[],comp=[];if(rows.length<(opt.base?9:8))return{err:'Need at least 8 growth scans to score a graph.'};
+ const hasT=rows.every(r=>r.t!==null);let ooo=0,dup=0;
+ if(hasT){for(let i=1;i<rows.length;i++){if(rows[i].t<rows[i-1].t)ooo++;if(rows[i].t==rows[i-1].t)dup++}rows=[...rows].sort((a,b)=>a.t-b.t||a.i-b.i)}else rows=rows.map((r,i)=>({...r,t:i}));
+ let first=null,B=0;if(opt.base){first=rows[0];B=first.v;rows=rows.slice(1)}
+ const n=rows.length,tt=rows.map(r=>r.t),g=med(tt.slice(1).map((x,i)=>Math.max(x-tt[i],0.5)))||1;
+ const O=first?first.t:tt[0]-g,t=tt.map(x=>x-O),gaps=t.map((x,i)=>Math.max(i?x-t[i-1]:x,0.5));
+ const v=rows.map(r=>r.v);let cu=0;const c=v.map(x=>cu+=x),tot=cu;
+ if(tot<=0)return{err:'Total views is zero.'};
+ const ge=Math.max(0,c.findIndex(x=>x>=0.995*tot)),na=Math.max(ge+1,Math.min(n,6)),tail=n-na,Tg=t[ge],u=t.map(x=>Math.min(1,x/Tg));
+ const at=x=>{let j=0;while(j<n-1&&u[j+1]<x)j++;const x0=j==0?0:u[j-1],y0=j==0?0:c[j-1]/tot,x1=u[j],y1=c[j]/tot;return x1>x0?y0+(y1-y0)*clip((x-x0)/(x1-x0)):y1},half=at(0.5);
+ const va=v.slice(0,na),r=va.map((x,i)=>x/gaps[i]),th=Math.max(1,Math.floor(na/3)),q=Math.max(1,Math.floor(na/4));
+ const mv=mean(va),mr=va.reduce((s,x)=>s+x,0)/gaps.slice(0,na).reduce((s,x)=>s+x,0);
+ const R=mean(r.slice(0,th))>0?mean(r.slice(-th))/mean(r.slice(0,th)):1;
+ const Q2=mean(r.slice(q,2*q)),acc=Q2>0?mean(r.slice(3*q))/Q2:1;
+ const endR=mean(r)>0?mean(r.slice(-5))/mean(r):0;
+ // batch gaps: share of growth TIME with almost no views (works for fixed-interval scanners and for trackers that only log when views change)
+ const gt=gaps.slice(0,na),zero=gt.reduce((s,x,i)=>s+(r[i]<0.1*mr?x:0),0)/gt.reduce((s,x)=>s+x,0);
+ const qq=va.map((x,i)=>{const m=med(r.slice(Math.max(0,i-2),i+3));return m>0?r[i]/m:null}).filter(x=>x!==null);
+ const mq=mean(qq),cv=mq>0?Math.sqrt(mean(qq.map(x=>(x-mq)**2)))/mq:0;
+ const mx=Math.max(...v)/tot;
+ const w=Math.max(3,Math.round(na*0.08));let surge=0;
+ for(let j=Math.max(w,Math.floor(na*0.25));j+w<=na;j+=1){const a=mean(r.slice(j,j+w)),b=mean(r.slice(j-w,j));surge=Math.max(surge,a/(b+0.02*mean(r)))}
+ const bad=ooo+dup;
+ const add=(k,val,s,w8,txt)=>{comp.push({k,val,s,w:w8,pts:s*w8});if(s>=0.35)flags.push({s,t:txt})};
+ add('Curve bend (share of views by mid-growth)',(half*100).toFixed(0)+'%',clip((0.74-half)/0.2),24,'Almost straight: only '+Math.round(half*100)+'% of views arrive by the halfway point of growth. Healthy curves are usually above 75%.');
+ add('Decay (late rate ÷ early rate)',R.toFixed(2),clip((R-0.4)/0.6),14,'No decay: the late rate is '+Math.round(R*100)+'% of the early rate. Healthy reels usually fall below 40%.');
+ add('Late acceleration',acc.toFixed(2),clip((acc-1.2)/0.8),4,'Growth speeds up late (last quarter is '+acc.toFixed(1)+'× the second quarter).');
+ add('Stops at full speed',tail>=3?endR.toFixed(2):'n/a',tail>=3?clip((endR-0.5)/0.5):0,10,'Views stop dead while the rate is still '+Math.round(endR*100)+'% of average. Organic growth tapers before it stops.');
+ add('Batch gaps (share of growth time with almost no views)',(zero*100).toFixed(0)+'%',clip((zero-0.1)/0.3),14,Math.round(zero*100)+'% of the growth time has almost no views, which suggests views arriving in batches.');
+ add('Too uniform (scan-to-scan variation)',cv.toFixed(2),clip((0.3-cv)/0.25),6,'Scan-to-scan variation is unusually low ('+cv.toFixed(2)+'). Real audiences are lumpier.');
+ add('Single-scan spike (share of total)',(mx*100).toFixed(1)+'%',clip((mx-0.12)/0.2),6,'One scan holds '+(mx*100).toFixed(0)+'% of all views.');
+ add('Sudden surge after slow stretch',surge.toFixed(1)+'×',clip((surge-2)/3),16,'A late surge runs at '+surge.toFixed(1)+'× the rate just before it, with no taper into it.');
+ add('Tracker integrity (order and duplicates)',bad+' issue'+(bad==1?'':'s'),clip(bad/(0.1*n)),6,bad+' timestamp problem(s): scans out of order or sharing a time. A tracker that misses nothing should not do this.');
+ let er=null;if(opt.eng){const V=B+tot;er=V>0?((opt.eng.l||0)+(opt.eng.c||0)+(opt.eng.s||0))/V:0;
+  add('Engagement rate (likes + comments + shares ÷ views)',(er*100).toFixed(1)+'%',clip((0.02-er)/0.015),15,'Engagement is only '+(er*100).toFixed(1)+'% of views. Very low engagement on high views is a common sign of bought views.')}
+ const Fsum=comp.reduce((s,x)=>s+x.pts,0)/comp.reduce((s,x)=>s+x.w,0)*100;
+ const pz=PZ,L=50,dist=P.map((p,pi)=>{let d=0;for(let k=0;k<L;k++){const x=(k+0.5)/L;d+=Math.abs(at(x)-Fs(pi,x))}return d/L+0.4*Math.abs(zero-pz[pi])});
+ const ws=dist.map(d=>Math.exp(-d/0.04)),sw=ws.reduce((a,b)=>a+b,0),prior=ws.reduce((s,x,i)=>s+x/sw*PRIOR[i],0);
+ const bot=Math.round(clip((0.75*Fsum+0.25*prior)/100,0,1)*100),span=hasT?(rows[n-1].t-(first?first.t:rows[0].t))/60:0;
+ let tier=bot<=30?'Low':bot<=60?'Medium':bot<=85?'High':'Critical',act=bot<=30?'Pass':bot<=60?'Hold for review':'Flag';
+ const prov=(hasT&&span<12)||n<15;if(prov){flags.push({s:0.3,t:'Provisional: under '+(n<15?'15 scans':'12 hours')+' of data. Judge again at 48 hours or more.'});if(act=='Pass')act='Hold (too early)'}
+ const still=tail<2&&endR>0.5;if(still)flags.push({s:0.32,t:'Still growing at the last scan. The shape is judged on growth so far; re-check once views level off.'});
+ flags.sort((a,b)=>b.s-a.s);
+ return{bot,tier,act,flags,comp,F:Fsum,prior,match:dist.map(d=>Math.round(100*clip(1-d/0.3))),dist,near:dist.indexOf(Math.min(...dist)),at,u,c,tot,v,n,span,tail,na,hasT,t,g,Tg,O,B,first,rows,still,gaps,er}}
+// head-to-head: clipper growth vs one preset, both on share-of-growth-time vs share-of-growth-views
+function compare(e,g){const N=240;let sad=0,mx=0,mxx=0,ah=0;
+ for(let k=0;k<N;k++){const x=(k+.5)/N,d=e.at(x)-Fs(g,x);sad+=Math.abs(d);if(Math.abs(d)>Math.abs(mx)){mx=d;mxx=x}if(d>0)ah++}
+ const cps=[.1,.25,.5,.75,.9].map(x=>({x,c:e.at(x),p:Fs(g,x)}));
+ const ph=[];for(let k=0;k<12;k++){const a=k/12,b=(k+1)/12;ph.push({a,b,c:e.at(b)-e.at(a),p:Fs(g,b)-Fs(g,a)})}
+ const runs=[];ph.forEach((q,k)=>{const d=q.c-q.p,s=Math.abs(d)<0.02?0:Math.sign(d),l=runs[runs.length-1];if(s&&l&&l.s==s&&l.b==k)Object.assign(l,{b:k+1,c:l.c+q.c,p:l.p+q.p});else if(s)runs.push({s,a:k,b:k+1,c:q.c,p:q.p})});
+ runs.forEach(r=>r.d=r.c-r.p);runs.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+ const cross=[];for(let k=1;k<N;k++){const x0=(k-.5)/N,x1=(k+.5)/N,d0=e.at(x0)-Fs(g,x0),d1=e.at(x1)-Fs(g,x1);if(d0*d1<0&&Math.abs(d0-d1)>0)cross.push(x0+(x1-x0)*d0/(d0-d1))}
+ return{g,mad:sad/N,mx,mxx,ahead:ah/N,cps,ph,runs,cross,match:e.match[g]}}
+// target log: same total, views placed so the cumulative follows the preset exactly at each scan
+function tweak(e,g,o){o=o||{};const G=e.tot,out=[];
+ if(e.first)out.push({t:e.hasT?e.first.t:0,v:e.B,o:e.B,base:1});
+ let xs,keep=!(o.mode=='even'&&e.hasT);
+ if(keep)xs=e.t.slice();else{const K=Math.min(1500,Math.max(2,Math.round(e.Tg/Math.max(1,o.m||30))));xs=[];for(let k=1;k<=K;k++)xs.push(e.Tg*k/K)}
+ let pc=0;xs.forEach((x,i)=>{const cc=(i==xs.length-1?G:Math.round(G*Math.min(1,Fs(g,x/e.Tg))));out.push({t:e.hasT?Math.round(e.O+x):null,v:cc-pc,o:keep?e.v[i]:null});pc=cc});
+ let rows=out.filter(r=>r.base||!o.drop||r.v>0),cu=0;rows=rows.map((r,i)=>{cu+=r.v;return{...r,i:i+1,c:cu}});return rows}
+function logText(rows,style){return rows.map(r=>{const d=r.t!=null?fmtS(new Date(r.t*60000)):null;
+ return style=='line'?[r.i,r.v].concat(d?[d]:[]).join(', '):[r.i].concat(d?[d]:[],['+'+r.v.toLocaleString('en-US'),'='+r.c.toLocaleString('en-US')]).join('\n')}).join('\n')}
+// CR-style live bot radar, calibrated on 7 real Content Rewards reviews (2 approved, 5 high bot risk).
+// Each signal gives a 0..1 strength; signals combine like independent alarms: risk = 1 - Π(1 - weight × strength).
+function radar(pts,opt){opt=opt||{};
+ const P=pts.filter(p=>p.t!=null&&p.c!=null).sort((a,b)=>a.t-b.t);if(P.length<5)return{err:'Need at least 5 timed readings.'};
+ const T0=P[0].t,Te=P[P.length-1].t,span=Te-T0,C0=P[0].c,Fv=P[P.length-1].c,G=Fv-C0;
+ if(span<=0||G<=0)return{err:'No view growth yet.'};
+ const at=t=>{if(t<=T0)return C0;if(t>=Te)return Fv;let lo=0,hi=P.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(P[m].t<=t)lo=m;else hi=m}const a=P[lo],b=P[hi];if(opt.step)return a.c;return b.t>a.t?a.c+(b.c-a.c)*(t-a.t)/(b.t-a.t):b.c};
+ const S=[],add=(k,label,s,w,val,txt)=>S.push({k,label,s:clip(s),w,val,txt});
+ // 1 burst: biggest share of growth inside a window of 10% of the tracked time (at least 1 hour)
+ const w=Math.max(60,span*.1);let m=0,mt=T0;
+ P.forEach(p=>{const a=(at(p.t+w)-p.c)/G,b=(p.c-at(p.t-w))/G;if(a>m){m=a;mt=p.t}if(b>m){m=b;mt=p.t-w}});
+ const quiet=(at(mt)-C0)/G,qs=m>.6&&quiet<.05&&mt-T0>span*.1;
+ add('burst','Burst',qs?1:(m-.35)/.35,qs?.9:.45,Math.round(m*100)+'% of views in '+dur2(w),Math.round(m*100)+'% of the views arrived within '+dur2(w)+(quiet<.05&&mt-T0>span*.1?', after a quiet start':'')+'. Organic reels spread their growth out.');
+ // 2 dead stop: views reach 99% and stay flat, and the climb did not slow down before stopping
+ let t99=P.find(p=>p.c>=C0+.99*G).t;const tail=(Te-t99)/span,g0=t99-T0,w2=Math.max(30,g0*.15);
+ const before=g0>0?((at(t99)-at(t99-w2))/w2)/((at(t99)-C0)/g0):0;
+ const stopS=clip((tail-.1)/.3)*clip((before-.25)/.5);
+ add('stop','Dead stop',stopS,.8,before.toFixed(2)+' speed before stop · flat '+Math.round(tail*100)+'% of the time','Views climb at full speed, then stop dead and stay flat for '+dur2(Te-t99)+'. Organic reels slow down gradually before they level off.');
+ // 3 no tail: almost nothing gained in the last third of tracking (only judged once tracking passes 5 days)
+ const g3=(Fv-at(Te-span/3))/G;
+ add('tail','No long tail',span>=7200?(.03-g3)/.025:0,.25,(g3*100).toFixed(1)+'% in last third','Only '+(g3*100).toFixed(1)+'% of the growth came in the last third of tracking. Real reels keep picking up a trickle of views.');
+ // 4 batches: share of growth time (before the 99% point) with almost no views
+ const t90=P.find(p=>p.c>=C0+.9*G).t,mr=(at(t90)-C0)/Math.max(1,t90-T0),W=Math.min(60,Math.max(15,span/200));let zi=0,zn=0;for(let t=T0;t<t90;t+=W){const ww=Math.min(W,t90-t);zn+=ww;if((at(t+ww)-at(t))/ww<.1*mr)zi+=ww}const z=zn>0?zi/zn:0;
+ add('batch','Batches',(z-.2)/.4,.2,Math.round(z*100)+'% of growth time idle',Math.round(z*100)+'% of the time before 90% of views arrived had almost no new views, so views came in batches.');
+ // 5 engagement rate from totals
+ if(opt.eng){const er=((opt.eng.l||0)+(opt.eng.c||0)+(opt.eng.s||0))/Fv;
+  add('eng','Engagement',(.06-er)/.05,.75,(er*100).toFixed(1)+'%','Engagement is only '+(er*100).toFixed(1)+'% of views. Bought views rarely come with likes, comments and shares.')}
+ // 6 lockstep + engagement falling behind (needs likes/comments/shares over time)
+ if(opt.series){let best=0,lag=0,nm='';['likes','comments','shares'].forEach(k=>{const s=(opt.series[k]||[]).filter(p=>p.c!=null).sort((a,b)=>a.t-b.t);if(s.length<5)return;const e0=s[0].c,eF=s[s.length-1].c;if(eF-e0<10)return;
+   const ea=t=>{if(t<=s[0].t)return e0;if(t>=s[s.length-1].t)return eF;let j=1;while(s[j].t<t)j++;const a=s[j-1],b=s[j];return a.c+(b.c-a.c)*(t-a.t)/(b.t-a.t)};
+   let d=0;for(let q=0;q<60;q++){const t=T0+span*(q+.5)/60;d+=Math.abs((at(t)-C0)/G-(ea(t)-e0)/(eF-e0))}d/=60;
+   const et=s.find(p=>p.c>=e0+.99*(eF-e0)).t,same=Math.abs(et-t99)<=Math.max(120,span*.05),flat=tail>.1;
+   const lk=clip((.08-d)/.06)*(same&&flat?1:0)*stopS;if(lk>best){best=lk;nm=k}
+   // engagement falling behind: views kept growing after this metric stopped
+   const vAfter=(Fv-at(et))/G;if(vAfter>lag){lag=vAfter;if(!nm)nm=k}});
+  // likes-to-views ratio that never drifts: real audiences change (early fans like more), bought likes are added at a fixed rate
+  let cvS=0,cvV=null;const ls=(opt.series.likes||[]).filter(x=>x.c!=null).sort((a,b)=>a.t-b.t);
+  if(ls.length>=5&&ls[ls.length-1].c>=50){const la=t=>{let y=ls[0].c;for(const x of ls){if(x.t<=t)y=x.c;else break}return y},t10=P.find(x=>x.c>=C0+.1*G).t,t9=P.find(x=>x.c>=C0+.9*G).t,rs=[];
+   for(let q=0;q<40;q++){const t=t10+(t9-t10)*q/39,v=at(t);if(v>0)rs.push(la(t)/v)}const mu=mean(rs);if(rs.length>=10&&mu>0){cvV=Math.sqrt(mean(rs.map(x=>(x-mu)**2)))/mu;cvS=clip((.03-cvV)/.02)}}
+  add('steady','Engagement too steady',cvS,.5,cvV==null?'—':'ratio varies '+(cvV*100).toFixed(1)+'%','The likes-to-views ratio barely changes ('+(cvV==null?'':(cvV*100).toFixed(1))+'% variation) from start to finish. Bought likes are added at a fixed rate; real audiences drift.');
+  add('lock','Lockstep',best,.6,best>0?nm+' moves with views':'—','Likes, comments and shares follow views exactly and stop dead at the same moment, which is how bought engagement packages behave.');
+  add('lag','Engagement fell behind',(lag-.3)/.4,.5,Math.round(lag*100)+'% of views after engagement stopped',Math.round(lag*100)+'% of the views arrived after likes, comments or shares had stopped growing.')}
+ const risk=1-S.reduce((p,x)=>p*(1-x.w*x.s),1),score=Math.round(risk*100);
+ const tier=score>=60?'High':score>=35?'Medium':'Low',early=span<2880;
+ return{score,tier,early,span,signals:S,reasons:S.filter(x=>x.s*x.w>=.12).sort((a,b)=>b.s*b.w-a.s*a.w),G,Fv,C0,t99,
+  msg:tier=='High'?'Strong signs of bot activity on this clip':tier=='Medium'?'Worth a closer look before you decide':'No strong signs of bot activity'}}
+function dur2(m){return m<120?Math.round(m)+' min':m<2880?(m/60).toFixed(m<600?1:0)+' h':(m/1440).toFixed(1)+' days'}
+// custom presets: a saved graph becomes a 13-point shape (share of views at each twelfth of its growth time)
+function shapeOf(e){const out=[];for(let k=0;k<=12;k++)out.push(Math.round(10000*Math.min(1,e.at(k/12))));for(let k=1;k<=12;k++)out[k]=Math.max(out[k],out[k-1]);out[12]=Math.max(out[12],1);return out}
+function addPreset(name,p,prior){NM.push(name);P.push(p);PRIOR.push(prior);EP.push(epOf(p));PZ.push(pzOf(P.length-1));return P.length-1}
+/*ENDPURE*/
+const $=id=>document.getElementById(id),css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim(),col=g=>g<5?css('--c'+(g+1)):['#0ea5e9','#e11d48','#65a30d','#ca8a04','#7c3aed','#db2777','#0891b2','#ea580c'][(g-5)%8];
+const S=[[46,25],[48,26],[56,29],[50,27],[52,28]].map(a=>({n:a[0],m:a[1],tot:10000,noise:8,win:0}));
+let cur=0,timer=null,shown=0,rows=[],sel=[],pov='cr',met='cum',hov=null,ovOpen=false,M=null,tgt=1,lastTxt=null,TW={mode:'keep',m:20,fmt:'block',drop:false};
+const t0=()=>new Date($('start').value).getTime();
+const CPK='custom_presets',cpGet=()=>{try{return JSON.parse(localStorage.getItem(CPK)||'[]')}catch(e){return[]}};cpGet().forEach(c=>{if(Array.isArray(c.p)&&c.p.length==13)addPreset(c.name,c.p,c.prior)});
+function dur(min){return min<2880?(min/60).toFixed(min%60?1:0)+' h':(min/1440).toFixed(1)+' d'}
+const nf=v=>Math.round(v).toLocaleString('en-US');
+/* ---------- graph engine (shared by CR Mod POV and Regular) ---------- */
+const CRP=['#e9eaee','#3fcf9f','#f0a458','#c08ae8','#ff7b83','#7dd3fc','#fda4af','#bef264','#fde047','#c4b5fd','#f9a8d4','#67e8f9','#fdba74'],CRL='#6aa7f5',CRT='#b4b6ba';
+const pcol=g=>pov=='cr'?CRP[g%CRP.length]:col(g),pad=x=>String(x).padStart(2,'0');
+const kf=v=>{const a=Math.abs(v),s=v<0?'−':'';return a>=1000?s+(+(a/1000).toFixed(a%1000?1:0))+'K':s+Math.round(a)};
+function hm(d){let h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getMinutes())+' '+ap}
+function setup(c){const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=Math.max(1,w*dpr);c.height=Math.max(1,h*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);return[x,w,h]}
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function niceStep(r){if(!(r>0))return 1;const p=10**Math.floor(Math.log10(r)),f=r/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+const TS=[5,10,15,30,60,120,180,360,720,1440,2880,4320,10080,20160,43200,86400];
+function timeTicks(a,b,maxN){const st=TS.find(s=>(b-a)/s<=maxN)||TS[TS.length-1],off=-new Date(a*60000).getTimezoneOffset(),out=[];
+ for(let t=Math.ceil((a+off)/st)*st-off;t<=b+1e-6;t+=st){const d=new Date(t*60000),mid=d.getHours()==0&&d.getMinutes()==0;
+  out.push({v:t,l:st>=1440||mid?MO[d.getMonth()]+' '+d.getDate():st<60||d.getMinutes()?hm(d):(d.getHours()%12||12)+' '+(d.getHours()>=12?'PM':'AM')})}return out}
+function fracTicks(a,b,maxN){const st=[.05,.1,.2,.25,.5,1].find(s=>(b-a)/s<=maxN)||1,out=[];for(let k=Math.ceil(a/st-1e-9);k*st<=b+1e-9;k++)out.push({v:k*st,l:Math.round(k*st*100)+'%'});return out}
+function idxTicks(a,b,maxN){const st=Math.max(1,Math.ceil(niceStep((b-a)/maxN))),out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)if(v>=0)out.push({v,l:'Scan '+(v+1)});return out}
+// monotone cubic (Fritsch–Carlson): passes through every scan, never overshoots, keeps flat stretches flat
+function mono(x,p){const n=p.length;for(let i=1;i<n;i++)if(p[i][0]<=p[i-1][0]){x.moveTo(p[0][0],p[0][1]);p.forEach(q=>x.lineTo(q[0],q[1]));return}
+ const d=[],m=new Array(n);for(let i=0;i<n-1;i++)d[i]=(p[i+1][1]-p[i][1])/(p[i+1][0]-p[i][0]);
+ m[0]=d[0];m[n-1]=d[n-2];for(let i=1;i<n-1;i++)m[i]=d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2;
+ for(let i=0;i<n-1;i++){if(d[i]===0){m[i]=0;m[i+1]=0;continue}const a=m[i]/d[i],b=m[i+1]/d[i],s=a*a+b*b;if(s>9){const t=3/Math.sqrt(s);m[i]=t*a*d[i];m[i+1]=t*b*d[i]}}
+ x.moveTo(p[0][0],p[0][1]);for(let i=0;i<n-1;i++){const h=(p[i+1][0]-p[i][0])/3;x.bezierCurveTo(p[i][0]+h,p[i][1]+m[i]*h,p[i+1][0]-h,p[i+1][1]-m[i+1]*h,p[i+1][0],p[i+1][1])}}
+function draw(c,sp,det,isMain){const[x,w,h]=setup(c);c._m=null;if(!sp)return;
+ const cr=pov=='cr',xl=det||isMain||!cr,pillOn=cr&&isMain;
+ const L=cr?12:58,R=cr?58:14,T=cr?14:10,B=xl?(pillOn?46:26):8,pw=w-L-R,ph=h-T-B;if(pw<30||ph<30)return;
+ const xs=(sp.xmax-sp.xmin)||1,X=v=>L+pw*(v-sp.xmin)/xs;
+ const lo=Math.min(0,sp.ymn||0),hi=Math.max(sp.ymx||0,lo<0?0:1e-9),rg=(hi-lo)||1;
+ let st=niceStep(rg/(det?(isMain?7:4):(isMain?5:3)));if(!sp.pct)st=Math.max(1,st);
+ let ym=hi+rg*.06;if(cr&&lo>=0&&!sp.pct&&!sp.sgn&&hi>0){const r=hi/7,p=10**Math.floor(Math.log10(r)),f=r/p;st=Math.max(1,(f<=1?1:f<=2?2:f<=5?5:10)*p);ym=Math.ceil(hi/st-1e-9)*st;if(ym-hi<.01*ym)ym+=st}
+ const yn=lo<0?lo-rg*.06:0,Y=v=>T+ph*(1-(v-yn)/(ym-yn));
+ const yf=sp.pct?(v=>(v*100).toFixed(st<.01?1:0)+'%'):sp.sgn?(v=>(v>0?'+':'')+kf(v)):kf;
+ c._m={L,pw,xmin:sp.xmin,xs,sp};
+ const tx=cr?CRT:css('--mut'),gr=cr?'rgba(255,255,255,.07)':css('--grid'),fs=det?13:12;
+ x.font=fs+'px system-ui,sans-serif';x.textAlign='right';
+ for(let k=Math.ceil(yn/st-1e-9);k*st<=ym+1e-9;k++){const v=k*st,y=Y(v);if(cr&&v==0&&lo>=0&&!isMain)continue;
+  if(det||!cr){x.strokeStyle=gr;x.lineWidth=1;x.beginPath();x.moveTo(L,y);x.lineTo(L+pw,y);x.stroke()}x.fillStyle=tx;x.fillText(yf(v),cr?w-8:L-6,y+4)}
+ if(!cr||lo<0){x.strokeStyle=cr?'rgba(255,255,255,.35)':css('--line');x.lineWidth=1;x.beginPath();x.moveTo(L,Y(0));x.lineTo(L+pw,Y(0));x.stroke()}
+ const sc=sp.scans||[],bk=sp.bk||'v',hOK=!sp.hk||sp.hk===HK,hq=hOK&&hov!=null&&hov<sc.length?sc[hov]:null,last=sc.length?sc[sc.length-1]:null;
+ x.save();x.beginPath();x.rect(L-3,0,pw+6,T+ph+1);x.clip();
+ sp.series.forEach(s=>{x.lineJoin='round';x.lineCap='round';x.globalAlpha=s.alpha||1;
+  if(s.t=='bars'){const hl=cr?'#ffffff':css('--ink');sc.forEach((q,i)=>{if(q.skip)return;const a=X(q.x0),b=X(q.x1),bw=b-a,g=bw>3?1:0,y=Y(q[bk]);x.fillStyle=hOK&&hov===i?hl:s.color;x.fillRect(a+g,Math.min(y,Y(0)),Math.max(1,bw-2*g),Math.abs(Y(0)-y))});x.globalAlpha=1;return}
+  const p=s.pts.map(q=>[X(q[0]),Y(q[1])]);if(p.length<2){x.globalAlpha=1;return}
+  x.beginPath();if(s.step){x.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length;i++){x.lineTo(p[i][0],p[i-1][1]);x.lineTo(p[i][0],p[i][1])}}else if(cr&&s.smooth)mono(x,p);else{x.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length;i++)x.lineTo(p[i][0],p[i][1])}
+  x.strokeStyle=s.color;x.lineWidth=s.w||1.8;x.setLineDash(s.dash||[]);x.stroke();x.setLineDash([]);
+  if(s.fill){const y0=Y(0);x.lineTo(p[p.length-1][0],y0);x.lineTo(p[0][0],y0);x.closePath();
+   if(s.fill=='pn'){const ok=cr?'rgba(63,207,159,.28)':'rgba(20,148,106,.22)',bd=cr?'rgba(255,123,131,.28)':'rgba(212,67,75,.22)';
+    x.save();x.clip();x.fillStyle=ok;x.fillRect(L,0,pw,y0);x.fillStyle=bd;x.fillRect(L,y0,pw,h);x.restore()}
+   else if(cr){const g=x.createLinearGradient(0,T,0,y0);g.addColorStop(0,'rgba(106,167,245,.30)');g.addColorStop(1,'rgba(106,167,245,.02)');x.fillStyle=g;x.fill()}}
+  if(det&&s.main&&sc.length<=300){x.fillStyle=s.color;p.slice(s.p0?0:1).forEach(q=>{x.beginPath();x.arc(q[0],q[1],2.3,0,6.3);x.fill()})}
+  x.globalAlpha=1});
+ x.restore();
+ // cursor lines: CR keeps a faint line at the latest scan (like the CR review chart); hover adds a brighter one
+ const pills=[];
+ if(pillOn&&last){const ex=X(last.x1);x.strokeStyle='rgba(255,255,255,.2)';x.lineWidth=1;x.beginPath();x.moveTo(ex,T-6);x.lineTo(ex,T+ph);x.stroke();pills.push({x:ex,t:sp.pl(last)})}
+ if(hq){const cx=X(hq.x1);x.strokeStyle=cr?'rgba(255,255,255,.45)':css('--mut');x.lineWidth=1;if(!cr)x.setLineDash([3,3]);x.beginPath();x.moveTo(cx,T-6);x.lineTo(cx,T+ph);x.stroke();x.setLineDash([]);
+  if(sp.mode=='line'){const m=sp.series.find(s=>s.main);x.fillStyle=m?m.color:CRL;x.strokeStyle=cr?'#111216':css('--panel');x.lineWidth=2;x.beginPath();x.arc(cx,Y(sp.ly?hq[sp.ly]:hq.c),4.5,0,6.3);x.fill();x.stroke()}
+  if(pillOn)pills.unshift({x:cx,t:sp.pl(hq),h:1})}
+ const occ=[];x.font='600 '+(det?14:13)+'px system-ui,sans-serif';
+ pills.forEach(p=>{const tw=x.measureText(p.t).width+24,px=Math.min(w-tw/2-4,Math.max(tw/2+4,p.x));if(occ.some(o=>Math.abs(o.x-px)<o.hw+tw/2+6))return;occ.push({x:px,hw:tw/2});
+  x.fillStyle=p.h?'#34353c':'#25262c';rr(x,px-tw/2,T+ph+9,tw,28,14);x.fill();x.fillStyle='#fff';x.textAlign='center';x.fillText(p.t,px,T+ph+28)});
+ if(xl){x.font=fs+'px system-ui,sans-serif';x.fillStyle=tx;x.textAlign='center';
+  const maxN=Math.min(10,Math.max(2,Math.floor(pw/(det?95:cr?80:125)))),tk=(sp.xk=='time'?timeTicks:sp.xk=='idx'?idxTicks:fracTicks)(sp.xmin,sp.xmax,maxN),ly=pillOn?T+ph+28:T+ph+18,yb=Y(lo<0?yn:0);let lastR=-1e9;
+  tk.forEach(t=>{const p=X(t.v);
+   if(cr&&!det&&isMain&&hq){if(occ.some(o=>Math.abs(o.x-p)<o.hw+8)||p<L||p>L+pw)return;x.fillStyle='rgba(255,255,255,.25)';x.beginPath();x.arc(p,ly-5,1.8,0,6.3);x.fill();return}
+   const lw=x.measureText(t.l).width;if(occ.some(o=>Math.abs(o.x-p)<o.hw+lw/2+8)||p-lw/2<2||p+lw/2>w-2||p-lw/2<lastR+10)return;
+   if(!cr){x.strokeStyle=css('--line');x.beginPath();x.moveTo(p,yb);x.lineTo(p,yb+4);x.stroke()}x.fillStyle=tx;x.fillText(t.l,p,ly);lastR=p+lw/2})}
+ // CR tooltip box
+ if(cr&&isMain&&hq&&sp.tt){const tt=sp.tt(hq),pd=11;x.font='600 13px system-ui,sans-serif';let tw=x.measureText(tt.title).width;
+  x.font='13px system-ui,sans-serif';tt.rows.forEach(r=>{tw=Math.max(tw,x.measureText(r[1]).width+x.measureText(r[2]).width+44)});
+  const bw=tw+pd*2,bh=pd*2+16+tt.rows.length*21,cx=X(hq.x1);let bx=cx+14;if(bx+bw>L+pw)bx=cx-14-bw;bx=Math.max(4,bx);const by=T+4;
+  x.fillStyle='rgba(26,27,32,.97)';x.strokeStyle='rgba(255,255,255,.09)';x.lineWidth=1;rr(x,bx,by,bw,bh,9);x.fill();x.stroke();
+  x.textAlign='left';x.fillStyle='#d9dade';x.font='600 13px system-ui,sans-serif';x.fillText(tt.title,bx+pd,by+pd+12);
+  x.font='13px system-ui,sans-serif';tt.rows.forEach((r,i)=>{const yy=by+pd+16+16+i*21;x.fillStyle=r[0];x.beginPath();x.arc(bx+pd+3,yy-4.5,3,0,6.3);x.fill();
+   x.fillStyle='#b4b6ba';x.textAlign='left';x.fillText(r[1],bx+pd+13,yy);x.fillStyle='#fff';x.textAlign='right';x.fillText(r[2],bx+bw-pd,yy)})}}
+/* ---------- what each tab plots ---------- */
+const prL=g=>P[g].map((y,k)=>[k/12,y/P[g][12]]);
+const ttl=(t,span)=>{const d=new Date(t*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():MO[d.getMonth()]+' '+d.getDate()+', '+hm(d)};
+function build(){const cr=pov=='cr',e=cur>=6?window._exr:null;let mt=met;if(e&&cur==7&&(pillM!='views'||met=='rate')){const mm=buildMetric();if(mm)return mm}if(mt=='gap'&&!e)mt='cum';
+ if(cur<5){const s=S[cur],n=rows.length,base=rows[0].t/60000-s.m,xmax=rows[n-1].t/60000,tot=rows[n-1].c,span=xmax-base,mc=cr?CRL:col(cur),hr=s.m/60;
+  const sc=rows.slice(0,shown).map((q,i)=>({x0:i?rows[i-1].t/60000:base,x1:q.t/60000,v:q.v,r:q.v/hr,c:q.c,txt:`Scan ${q.i} of ${n} · ${fmt(q.t)} · +${nf(q.v)} · ${nf(q.c)} views · ${nf(q.v/hr)} per hour`}));
+  const pl=q=>{const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():hm(d)},ax={xk:'time',xmin:base,xmax,scans:sc,pl};
+  const C={...ax,ymx:tot,mode:'line',tt:q=>({title:ttl(q.x1,span),rows:[[mc,'Views',nf(q.c)]]}),series:[{t:'line',color:mc,w:cr?2.4:2.2,main:1,fill:1,smooth:1,pts:[[base,0],...sc.map(q=>[q.x1,q.c])]}]};
+  const Pv={...ax,ymx:Math.max(1,...rows.map(q=>q.v)),mode:'bars',tt:q=>({title:ttl(q.x1,span),rows:[[mc,'Views added',nf(q.v)]]}),series:[{t:'bars',color:mc}]},Rv={...Pv,ymx:Math.max(1,...rows.map(q=>q.v))/hr,bk:'r',tt:q=>({title:ttl(q.x1,span),rows:[[mc,'Views per hour',nf(q.r)]]})};
+  const nm=NM[cur];return mt=='per'?{title:nm+': views added per scan',t2:'Cumulative views',main:Pv,sub:C}:mt=='rate'?{title:nm+': views per hour',t2:'Cumulative views',main:Rv,sub:C}:{title:nm+': cumulative views',t2:'Views added per scan',main:C,sub:Pv}}
+ if(!e){const gs=cur==5?NM.map((_,i)=>i):[...new Set([tgt,...NM.map((_,i)=>i).filter(g=>sel[g])])],leg=gs.map(g=>[g,NM[g]]),nm=cur==5?'All presets':'Presets';
+  if(mt=='cum')return{title:nm+': share of views vs share of run',main:{xk:'frac',xmin:0,xmax:1,ymx:1,pct:1,scans:[],series:gs.map(g=>({t:'line',color:pcol(g),w:2,pts:prL(g)}))},sub:null,leg};
+  const segs=gs.map(g=>({g,y:P[g].slice(1).map((v,k)=>(v-P[g][k])/P[g][12])}));
+  return{title:nm+': share of views in each twelfth of the run',main:{xk:'frac',xmin:0,xmax:1,ymx:Math.max(.01,...segs.flatMap(o=>o.y)),pct:1,scans:[],
+   series:segs.map(o=>({t:'line',color:pcol(o.g),w:2,pts:o.y.flatMap((y,k)=>[[k/12,y],[(k+1)/12,y]])}))},sub:null,leg}}
+ return buildClip(e,mt)}
+function buildClip(e,mt){const cr=pov=='cr',g=tgt,T=e.Tg,O=e.O,G=e.tot,B=e.B,hT=e.hasT,mc=cr?CRL:css('--ink'),hu=hT?60:1;
+ const ext=NM.map((_,i)=>i).filter(k=>sel[k]&&k!=g),sc=[];
+ if(e.first)sc.push({x0:O,x1:O,v:B,r:0,c:B,p:B,d:0,skip:1,i:e.first.i,tm:e.first.t});
+ let x0=O;e.t.forEach((t,i)=>{const x1=O+t,c=B+e.c[i],pv=B+G*Fs(g,t/T);sc.push({x0,x1,v:e.v[i],r:e.v[i]/((x1-x0)/hu||1),c,p:pv,d:c-pv,i:e.rows[i].i,tm:e.rows[i].t});x0=x1});
+ const xmax=sc[sc.length-1].x1,tl=q=>hT?fmtS(new Date(q.tm*60000)):'',unit=hT?'per hour':'per scan gap';
+ sc.forEach(q=>{q.txt=q.skip?`Scan ${q.i}${hT?' · '+tl(q):''} · starting count ${nf(q.v)}`:`Scan ${q.i}${hT?' · '+tl(q):''} · +${nf(q.v)} (${nf(q.r)} ${unit}) · total ${nf(q.c)} · ${NM[g]} ${nf(q.p)} · ${Math.abs(q.d)<0.5?'level':nf(Math.abs(q.d))+(q.d>0?' ahead':' behind')}`});
+ const span=xmax-O,pl=q=>{if(!hT)return'Scan '+q.i;const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():hm(d)},tT=q=>hT?ttl(q.tm,span):'Scan '+q.i,pc=pcol(g);
+ const ax={xk:hT?'time':'idx',xmin:O,xmax,scans:sc,pl};
+ const pLine=(k,w,a,dash)=>{const pts=FsPts(k).map(q=>[O+q[0]*T,B+G*q[1]]);if(pts[pts.length-1][0]<xmax)pts.push([xmax,B+G]);return{t:'line',color:pcol(k),w,alpha:a,dash,pts}};
+ const cPts=(e.first?[]:[[O,0]]).concat(sc.map(q=>[q.x1,q.c]));
+ const main={t:'line',color:mc,w:cr?2.4:2.6,main:1,fill:1,smooth:1,step:cur==7?1:0,p0:!!e.first,pts:cPts};
+ const C={...ax,ymx:B+G,mode:'line',tt:q=>({title:tT(q),rows:q.skip?[[mc,'Starting count',nf(q.c)]]:[[mc,'Views',nf(q.c)],[pc,NM[g],nf(q.p)]]}),series:[...ext.map(k=>pLine(k,1.4,.55)),pLine(g,2.2,1,[7,5]),main]};
+ const exp=k=>sc.map(q=>q.skip?0:G*(Fs(k,(q.x1-O)/T)-Fs(k,(q.x0-O)/T))),step=(k,y,w,a,dash)=>({t:'line',color:pcol(k),w,alpha:a,dash,pts:sc.flatMap((q,i)=>q.skip?[]:[[q.x0,y[i]],[q.x1,y[i]]])});
+ const eg=exp(g),ee=ext.map(k=>({k,y:exp(k)})),bars={t:'bars',color:mc};
+ const Pv={...ax,mode:'bars',tt:q=>{const i=sc.indexOf(q);return{title:tT(q),rows:q.skip?[[mc,'Starting count',nf(q.v)]]:[[mc,'Views added',nf(q.v)],[pc,NM[g],nf(eg[i])]]}},ymx:Math.max(1,...e.v,...eg,...ee.flatMap(o=>o.y)),series:[bars,...ee.map(o=>step(o.k,o.y,1.3,.6)),step(g,eg,2,1,[6,4])]};
+ const rStep=(k,w,a,dash)=>{const p=P[k],pts=[];for(let j=0;j<12;j++){const xa=O+j/12/EP[k]*T,xb=O+(j+1)/12/EP[k]*T,y=G*(p[j+1]-p[j])/p[12]/((xb-xa)/hu);if(xa>=xmax)break;pts.push([xa,y],[Math.min(xb,xmax),y])}if(pts.length&&pts[pts.length-1][0]<xmax)pts.push([pts[pts.length-1][0],0],[xmax,0]);return{t:'line',color:pcol(k),w,alpha:a,dash,pts}};
+ const rs=[...ext.map(k=>rStep(k,1.3,.6)),rStep(g,2,1,[6,4])];
+ const Rv={...ax,mode:'bars',bk:'r',tt:q=>({title:tT(q),rows:[[mc,'Views '+unit,nf(q.r)]]}),ymx:Math.max(1,...sc.map(q=>q.skip?0:q.r),...rs.flatMap(s=>s.pts.map(q=>q[1]))),series:[bars,...rs]};
+ const dv=sc.map(q=>q.d),dHi=Math.max(0,...dv),dLo=Math.min(0,...dv),dPad=Math.max(1,(dHi-dLo)*.02);
+ const Gp={...ax,mode:'line',ly:'d',tt:q=>({title:tT(q),rows:[[mc,'Views',nf(q.c)],[pc,NM[g],nf(q.p)],[q.d>=0?'#3fcf9f':'#ff7b83','Gap',(q.d>=0?'+':'−')+nf(Math.abs(q.d))]]}),ymx:dHi||dPad,ymn:dLo<0?dLo:0,sgn:1,series:[{t:'line',color:mc,w:cr?2.2:2.4,main:1,fill:'pn',p0:!!e.first,pts:(e.first?[]:[[O,0]]).concat(sc.map(q=>[q.x1,q.d]))}]};
+ let leg=[[-1,'clipper'],[g,NM[g]+' (head to head, dashed)'],...ext.map(k=>[k,NM[k]])],nm=NM[g];
+ if(cr&&!showCmp){leg=[];C.series=[main];Pv.series=[bars];Rv.series=[bars];C.tt=q=>({title:tT(q),rows:[[mc,q.skip?'Starting count':'Views',nf(q.c)]]});Pv.tt=q=>({title:tT(q),rows:[[mc,q.skip?'Starting count':'Views added',nf(q.v)]]})}
+ const Pc={...Pv,ymx:Math.max(1,...e.v),tt:null,series:[bars]},Cc={...C,series:[pLine(g,2,1,[7,5]),main]};
+ if(mt=='per')return{title:`Clipper vs ${nm}: views added per scan`,t2:'Cumulative views',main:Pv,sub:Cc,leg};
+ if(mt=='rate')return{title:`Clipper vs ${nm}: views ${unit}`,t2:'Cumulative views',main:Rv,sub:Cc,leg};
+ if(mt=='gap')return{title:`Gap: clipper minus ${nm} (views; above zero = ahead)`,t2:'Cumulative views',main:Gp,sub:Cc,leg};
+ return{title:`Clipper vs ${nm}: cumulative views`,t2:'Clipper: views added per scan',main:C,sub:Pc,leg}}
+let HK=null;function paintAll(){if(!M)return;HK=M.main.hk||null;draw($('c1'),M.main,false,true);$('b2').style.display=M.sub?'':'none';if(M.sub)draw($('c2'),M.sub,false,false);
+ if(ovOpen){draw($('oc1'),M.main,true,true);$('ob2').style.display=M.sub?'':'none';if(M.sub)draw($('oc2'),M.sub,true,false)}
+ const sc=M.main.scans||[],i=hov!=null&&hov<sc.length?hov:(pov=='cr'&&sc.length?sc.length-1:null),t=i!=null?sc[i].txt:'';$('rd').textContent=t;$('ord').textContent=t}
+let rvSt={k:'pending',d:null},pillM='views',showCmp=false,SER=null;
+const num=id=>{const v=$(id).value.trim();return v===''?null:Math.max(0,+v||0)};
+function sub(){return{name:$('sname').value.trim(),date:$('sdate').value,l:num('slk'),c:num('scm'),s:num('ssh'),cpm:num('scpm'),cap:num('scap')}}
+const ck=v=>v==null?'—':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
+function hid(t){let h=0x811c9dc5;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return h.toString(16).padStart(8,'0')}
+const ICO={eye:'<svg viewBox="0 0 24 24" fill="none" stroke="#6aa7f5" stroke-width="2.2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ heart:'<svg viewBox="0 0 24 24" fill="#ff6f91"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.5 1.1 5.3 3 1.8-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>',
+ cmt:'<svg viewBox="0 0 24 24" fill="#f0a458"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>',
+ er:'<svg viewBox="0 0 24 24" fill="none" stroke="#e6c35c" stroke-width="2.4" stroke-linecap="round"><path d="M5 19L19 5"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>',
+ shr:'<svg viewBox="0 0 24 24" fill="none" stroke="#3fcf9f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l7 7-7 7M21 12H9a6 6 0 0 0-6 6"/></svg>'};
+function renderReview(){const e=window._exr,rd=window._rad,on=pov=='cr'&&cur>=6&&!!e&&!!rd,card=$('c1').parentNode;card.classList.toggle('rv',on);
+ $('cmpb').hidden=!(cur>=6&&e&&pov=='cr');$('cmpb').classList.toggle('on',showCmp);$('saveb').hidden=!(cur>=6&&e);
+ if(!on){$('crx').innerHTML='';$('crf').innerHTML='';return}
+ const s=sub(),V=e.B+e.tot,hasE=s.l!=null||s.c!=null||s.s!=null,er=hasE?((s.l||0)+(s.c||0)+(s.s||0))/V:null;
+ const rk=rd.tier=='Low'?'lo':rd.tier=='Medium'?'md':'hi',dd=d=>d.getDate()+' '+MO[d.getMonth()]+" '"+String(d.getFullYear()).slice(2);
+ const pd=s.date?new Date(s.date+'T00:00'):e.hasT?new Date((e.first?e.first.t:e.rows[0].t)*60000):null,id=cur==7&&LV.cur?LV.cur.id:hid($('paste').value);
+ const st=rvSt.k=='approved'?`<span class="bdg ok">✓ Approved ${dd(rvSt.d)}</span>`:rvSt.k=='rejected'?`<span class="bdg rj">⊗ Rejected ${dd(rvSt.d)}</span>`:'<span class="bdg pd"><i></i>Pending review</span>';
+ const btn=rvSt.k=='approved'?'<button class="rjb" id="rvR">⊗ Reject</button>':rvSt.k=='rejected'?'<button class="apb gr" id="rvA">✓ Approve</button>':'<button class="apb" id="rvA">✓ Approve</button><button class="rjb" id="rvR">⊗ Reject</button>';
+ const badge=rd.tier=='High'?`<span class="tipw"><span class="bdg hi">🤖 High bot risk</span><span class="tip"><b>🤖 High bot risk</b>Our bot check found strong signs of bot activity on this clip. Check the post before you pay for it.</span></span>`:'';
+ const link=cur==7&&LV.cur?LV.cur.link:'',pay=s.cpm==null?null:Math.min(V/1000*s.cpm,s.cap==null?Infinity:s.cap);
+ $('crx').innerHTML=`<div class="rvh"><div class="rvw">${cur==7&&LV.sel&&LV.cur&&LV.cur.thumb?`<img class="av" src="${LV.cur.thumb.replace(/"/g,'')}" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML='<div class=&quot;av&quot;></div>'">`:'<div class="av"></div>'}<div><div class="rvn">${(s.name||'Clipper').replace(/[<>&]/g,'')}${cur==7&&LV.cur&&LV.cur.sim?' <span class="bdg simb" style="padding:2px 7px;font-size:11px">SIMULATED</span>':''}</div><div class="rvs">${pd?dd(pd)+' ·':''}<button class="idc" id="rvId" title="Copy ID">${id} ⧉</button></div></div></div>
+ <div class="rvb">${badge}${st}${btn}</div></div>${cur==7&&LV.cur&&LV.cur.note?`<div class="rvnote">⚠ ${esc(LV.cur.note)}</div>`:''}
+ <div class="pills">${[['views',ICO.eye,'Views',ck(V)],['likes',ICO.heart,'Likes',ck(s.l)],['comments',ICO.cmt,'Comments',ck(s.c)],['shares',ICO.shr,'Shares',ck(s.s)]].concat(cur==7?[['eng',ICO.er,'Engagement',er==null?'—':(er*100).toFixed(1)+'%']]:[]).map(p=>`<button class="pill${pillM==p[0]?' on':''}" data-m="${p[0]}" title="${p[2]}${cur==7?'':' (graph over time needs Live reels)'}" style="cursor:${cur==7?'pointer':'default'}">${p[1]}<span class="lb">${p[2]}</span><b>${p[3]}</b></button>`).join('')}</div>`;
+ $('crf').innerHTML=`<div class="rvm"><div>Engagement<b>${er==null?'—':(er<0.1?(er*100).toFixed(1):Math.round(er*100))+'%'}</b></div><div>Payout<b>${pay==null?'—':'$'+pay.toFixed(2)}</b></div></div>
+ <div class="bot ${rk}"><span>● <b>Live bot detection</b> · <span class="ms" id="rvO">${rd.msg}</span> <span class="tr">· ${rd.tier} risk ${rd.score}${rd.early?' · early read':''}</span></span>${link?`<a class="op" href="${link.replace(/"/g,'')}" target="_blank" rel="noopener">Open post</a>`:''}</div>${(()=>{const a=cur==7&&LV.cur&&LV.ver&&LV.ver[LV.cur.id];if(!a)return'';const ai=a.aiTier?`<div style="margin-top:6px"><b>AI second opinion: ${esc(a.aiTier)}${a.aiScore!=null?' · '+a.aiScore:''}</b>${a.aiConfidence?' <span class="t">('+esc(a.aiConfidence)+' confidence)</span>':''}${a.aiAt?' <span class="t">· '+fmtS(new Date(a.aiAt))+'</span>':''}<ul>${a.aiReasons.split('\n').filter(Boolean).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul></div>`:'';return`<div class="aibox"><b>Server check (hourly)</b> <span class="t">· ${a.judgedAt?fmtS(new Date(a.judgedAt)):''}</span> · rule checker: <b>${esc(a.tier)}${a.score!=null?' · '+a.score:''}</b>${ai}</div>`})()}`;
+ const A=$('rvA'),R=$('rvR');if(A)A.onclick=()=>{if(cur==7&&LV.sel)return liveDecide('approved');rvSt={k:'approved',d:new Date()};renderReview()};if(R)R.onclick=()=>{if(cur==7&&LV.sel)return liveDecide('rejected');rvSt={k:'rejected',d:new Date()};renderReview()};
+ document.querySelectorAll('#crx .pill').forEach(b=>b.onclick=()=>{if(cur!=7)return;pillM=b.dataset.m;render()});$('rvId').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(id)};$('rvO').onclick=()=>{const f=$('why');if(f)f.scrollIntoView({behavior:'smooth',block:'center'})}}
+function hook(c){const f=e=>{const m=c._m;if(!m||!m.sp.scans||!m.sp.scans.length)return;const r=c.getBoundingClientRect(),v=m.xmin+(e.clientX-r.left-m.L)/m.pw*m.xs,bars=m.sp.mode=='bars';
+  let b=0,bd=1e18;m.sp.scans.forEach((q,i)=>{const d=Math.abs((bars?(q.x0+q.x1)/2:q.x1)-v);if(d<bd){bd=d;b=i}});if(hov!==b){hov=b;paintAll()}};
+ c.addEventListener('pointermove',f);c.addEventListener('pointerdown',f);c.addEventListener('pointerleave',()=>{if(hov!==null){hov=null;paintAll()}})}
+['c1','c2','oc1','oc2'].forEach(id=>hook($(id)));
+function show(mode){const p=mode=='preset';$('ctlpanel').style.display=p?'':'none';$('p3').style.display=p?'':'none';$('tp').style.display=mode=='test'||mode=='live'?'':'none';$('tp').classList.toggle('live',mode=='live');$('lp').style.display=mode=='live'?'':'none'}
+function render(){show(cur<5?'preset':cur==5?'all':cur==6?'test':'live');const gapOK=cur>=6&&!!window._exr;document.querySelectorAll('.gapb').forEach(b=>b.hidden=!gapOK);if(met=='gap'&&!gapOK){met='cum';sync()}
+ M=build();renderReview();
+ $('t1').textContent=$('ot1').textContent=pov=='cr'&&cur>=6&&window._exr&&!showCmp?M.title.replace(/^Clipper vs [^:]+: (.)/,(m,c)=>c.toUpperCase()):M.title;$('t2').textContent=$('ot2').textContent=M.t2||'';
+ const lg=(M.leg||[]).map(l=>`<span><i style="background:${l[0]==-2?'#e6c35c':l[0]==-3?'#9a9ca3':l[0]<0?(pov=='cr'?CRL:css('--ink')):pcol(l[0])}"></i>${l[1]}</span>`).join('');$('leg').innerHTML=$('oleg').innerHTML=lg;
+ paintAll();
+ if(cur<5){$('tb').innerHTML=rows.slice(0,shown).map(q=>`<tr><td class="n">${q.i}</td><td class="n">${q.v}</td><td>${fmt(q.t)}</td><td class="n">${q.c.toLocaleString()}</td></tr>`).join('');const tw=document.querySelector('.tw');tw.scrollTop=tw.scrollHeight}}
+function sync(){document.querySelectorAll('.crc').forEach(e=>e.classList.toggle('reg',pov=='reg'));
+ document.querySelectorAll('[data-pov]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pov==pov));document.querySelectorAll('[data-met]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.met==met))}
+document.querySelectorAll('[data-pov]').forEach(b=>b.onclick=()=>{pov=b.dataset.pov;sync();render()});
+document.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{met=b.dataset.met;sync();render()});
+function openOv(){ovOpen=true;$('ov').hidden=false;document.body.style.overflow='hidden';render();$('ox').focus()}
+function closeOv(){ovOpen=false;$('ov').hidden=true;document.body.style.overflow='';hov=null;render()}
+document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=openOv);$('ox').onclick=closeOv;
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeOv()});addEventListener('keydown',e=>{if(e.key=='Escape'&&ovOpen)closeOv()});
+/* ---------- simulator controls ---------- */
+function load(){const s=S[cur];$('n').value=s.n;$('m').value=s.m;$('tot').value=s.tot;$('noise').value=s.noise;$('win').value=s.win}
+function read(){const s=S[cur],cl=(v,a,b)=>Math.min(b,Math.max(a,+v||a));s.n=cl($('n').value,10,1500);s.m=cl($('m').value,5,720);s.tot=+$('tot').value;s.noise=cl($('noise').value,0,30);s.win=+$('win').value;load()}
+function prep(){clearInterval(timer);read();rows=sim(cur,S[cur],t0())}
+function info(){const s=S[cur];$('status').textContent=rows.length+' scans, '+s.m+' min apart, '+dur(rows.length*s.m)+(s.win&&s.win<rows.length*s.m?'; growth ends at '+dur(s.win)+', then plateau':'')}
+function instant(){prep();shown=rows.length;info();render()}
+function run(){prep();shown=0;hov=null;render();const step=Math.max(1,Math.ceil(rows.length/60));timer=setInterval(()=>{shown=Math.min(rows.length,shown+step);$('status').textContent='Scan '+shown+' of '+rows.length+' · '+fmt(rows[shown-1].t);render();if(shown>=rows.length){clearInterval(timer);info()}},70)}
+function tab(i){if(i!=7&&pillM=='eng')pillM='views';clearInterval(timer);const was=cur;cur=i;hov=null;[...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-selected',k==i));if(i<5){load();instant();return}
+ if((was==7)!=(i==7)){$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;rvSt={k:'pending',d:null};pillM='views';['sname','sdate','slk','scm','ssh','scpm'].forEach(id=>$(id).value='')}
+ render();if(i==7)liveRefresh(true)}
+[...NM.slice(0,5),'All presets','Test a clipper’s graph','Live reels'].forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('role','tab');b.onclick=()=>tab(i);$('tabs').appendChild(b)});
+$('win').onchange=()=>{const w=+$('win').value;if(w){let run=w*1.25,m=+$('m').value||25,n=Math.round(run/m);if(n>1500){m=Math.ceil(run/1500);n=Math.round(run/m)}$('m').value=m;$('n').value=Math.max(10,n)}instant()};
+$('run').onclick=run;$('inst').onclick=instant;
+$('csv').onclick=()=>{const t='SCANS,views add recorded,time captured\n'+rows.map(q=>[q.i,q.v,'"'+fmt(q.t)+'"'].join(',')).join('\n');dl(t,NM[cur].replace(/ /g,'_')+'_scans.csv','text/csv')};
+function dl(t,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+['n','m','tot','noise','start'].forEach(id=>$(id).addEventListener('change',instant));
+/* ---------- clipper test: score, head to head, target log ---------- */
+const EX=`1\nNov 20, 1:00\n+500\n=500\n2\nNov 20, 1:24\n+120\n=620\n3\nNov 20, 1:38\n+181\n=801\n4\nNov 20, 1:53\n+150\n=951\n5\nNov 20, 2:31\n+328\n=1,279\n6\nNov 20, 3:05\n+164\n=1,443\n7\nNov 20, 3:29\n+156\n=1,599\n8\nNov 20, 3:43\n+149\n=1,748\n9\nNov 20, 3:59\n+196\n=1,944\n10\nNov 20, 4:34\n+312\n=2,256\n11\nNov 20, 5:13\n+230\n=2,486\n12\nNov 20, 5:30\n+160\n=2,646\n13\nNov 20, 5:54\n+133\n=2,779\n14\nNov 20, 6:15\n+204\n=2,983\n15\nNov 20, 6:34\n+208\n=3,191\n16\nNov 20, 6:55\n+299\n=3,490\n17\nNov 20, 7:17\n+137\n=3,627\n18\nNov 20, 7:32\n+188\n=3,815\n19\nNov 20, 7:58\n+273\n=4,088\n20\nNov 20, 8:21\n+187\n=4,275\n21\nNov 20, 8:42\n+203\n=4,478\n22\nNov 20, 9:03\n+147\n=4,625\n23\nNov 20, 9:29\n+350\n=4,975\n24\nNov 20, 9:51\n+151\n=5,126\n25\nNov 20, 10:06\n+141\n=5,267\n26\nNov 20, 10:37\n+431\n=5,698\n27\nNov 20, 10:56\n+100\n=5,798\n28\nNov 20, 11:19\n+317\n=6,115\n29\nNov 20, 11:53\n+281\n=6,396\n30\nNov 20, 12:07\n+112\n=6,508\n31\nNov 20, 12:22\n+211\n=6,719\n32\nNov 20, 12:46\n+317\n=7,036\n33\nNov 20, 1:07\n+158\n=7,194\n34\nNov 20, 1:20\n+123\n=7,317\n35\nNov 20, 1:38\n+250\n=7,567\n36\nNov 20, 1:55\n+167\n=7,734\n37\nNov 20, 2:10\n+175\n=7,909\n38\nNov 20, 2:31\n+291\n=8,200\n39\nNov 20, 2:55\n+271\n=8,471\n40\nNov 20, 3:13\n+215\n=8,686\n41\nNov 20, 3:30\n+244\n=8,930\n42\nNov 20, 3:47\n+264\n=9,194\n43\nNov 20, 4:17\n+353\n=9,547\n44\nNov 20, 4:36\n+140\n=9,687\n45\nNov 20, 4:57\n+313\n=10,000`;
+function presetUI(){$('chk').innerHTML='<span>Also draw:</span>'+NM.map((n,g)=>`<label><input type="checkbox" data-g="${g}"${sel[g]?' checked':''}><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col(g)}"></i>${esc(n)}${g>=5?' (yours)':''}</label>`).join('');
+ $('tgt').innerHTML=NM.map((n,g)=>`<option value="${g}">${esc(n)}${g>=5?' (your preset)':''}</option>`).join('');$('tgt').value=tgt}
+const esc=t=>String(t==null?'':t).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+presetUI();NM.slice(0,5).forEach((n,g)=>$('smp').insertAdjacentHTML('beforeend',`<option value="${g}">Sample: ${n}</option>`));
+$('tgt').value=tgt;
+$('tgt').onchange=()=>{tgt=+$('tgt').value;window._exr?doScore({keep:1}):render()};
+$('base').onchange=()=>{if(window._exr)doScore({keep:1})};
+['slk','scm','ssh'].forEach(id=>$(id).addEventListener('change',()=>{if(window._exr)doScore({keep:1})}));['sname','sdate','scpm'].forEach(id=>$(id).addEventListener('input',renderReview));
+$('chk').onchange=e=>{sel[+e.target.dataset.g]=e.target.checked?1:0;render()};
+$('smp').onchange=()=>{const g=$('smp').value;if(g==='')return;SER=null;if(g=='ex')$('paste').value=EX;else{const r=sim(+g,S[+g],t0());$('paste').value='SCANS, views add recorded, time captured\n'+r.map(q=>[q.i,q.v,fmt(q.t)].join(', ')).join('\n')}$('smp').value='';doScore()};
+$('clr').onclick=()=>{rvSt={k:'pending',d:null};SER=null;window._rad=null;$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;hov=null;render()};
+function doScore(o){o=o||{};const txt=o.rows?null:$('paste').value,rw=o.rows||parse(txt),kk=o.rows?'live:'+o.key:txt,fresh=kk!==lastTxt;
+ if(fresh&&!o.keep){if(!o.rows)rvSt={k:'pending',d:null};$('base').checked=o.base!=null?o.base:looksBase(rw);lastTxt=kk;const md=med(rw.slice(1).filter((r,i)=>r.t!=null&&rw[i].t!=null).map((r,i)=>r.t-rw[i].t));if(md>0)TW.m=Math.max(1,Math.round(md))}
+ const sv=rw.reduce((s,r)=>s+r.v,0),hasT=rw.length&&rw.every(r=>r.t!==null);
+ $('pnote').innerHTML=rw.length?`Read <b>${rw.length} scans</b>, <b>${nf(sv)} views</b>${hasT?' from '+fmtS(new Date(Math.min(...rw.map(r=>r.t))*60000))+' to '+fmtS(new Date(Math.max(...rw.map(r=>r.t))*60000)):', no times'}${$('base').checked?` · scan 1 (${nf(rw[0].v)} views) treated as the starting count, so growth is measured on the other ${nf(sv-rw[0].v)}`:''}.`+(rw.notes||[]).map(n=>'<br>'+n).join(''):'';
+ const sb=sub(),eng=sb.l!=null||sb.c!=null||sb.s!=null?{l:sb.l||0,c:sb.c||0,s:sb.s||0}:null,r=score(rw,{base:$('base').checked,eng});if(r.err){$('res').innerHTML='<p>'+r.err+'</p>';window._exr=null;window._rad=null;render();return}
+ const rpts=(r.first?[{t:r.first.t,c:r.B}]:[{t:r.O,c:0}]).concat(r.rows.map((q,i)=>({t:q.t,c:r.B+r.c[i]}))),RD=radar(rpts,{eng,series:o.series||SER,step:!!o.step});window._rad=RD.err?null:RD;
+ window._exr=r;if(fresh)hov=null;render();
+ const RDx=window._rad||{score:r.bot,tier:r.tier=='Critical'?'High':r.tier,reasons:[],early:false},colr=RDx.tier=='Low'?'--ok':RDx.tier=='Medium'?'--md':'--hi',cp=compare(r,tgt),act=RDx.tier=='High'?'Flag':RDx.tier=='Medium'?'Hold for review':RDx.early?'Hold (too early)':'Pass';
+ $('res').innerHTML=`<div class="score"><div class="big" style="color:var(${colr})">${RDx.score}</div><div><span class="tag" style="background:var(${colr})">${RDx.tier} bot risk</span> <strong>${act}</strong><br><small>Live bot detection (CR-style radar)${RDx.early?' · early read: under 2 days of data':''} · nearest preset: <strong>${NM[r.near]}</strong> (${r.match[r.near]}% match)</small></div></div>
+ <div class="sv" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="pnm" placeholder="Name for this shape" style="width:200px"><button class="b alt" id="psave">Save as preset</button><span id="pmsg" style="font-size:13px;color:var(--mut)"></span></div>
+ <h2 style="margin-top:12px" id="why">Why</h2><ul class="fl why">${RDx.reasons.length?RDx.reasons.map(x=>`<li><b>${x.label}:</b> ${x.txt}</li>`).join(''):'<li>No bot signals triggered.</li>'}</ul>
+ <details><summary>Every radar signal</summary><div class="tw" style="margin-top:6px"><table><thead><tr><th>Signal</th><th>Reading</th><th class="n">Strength</th><th class="n">Weight</th></tr></thead><tbody>${(RDx.signals||[]).map(x=>`<tr><td>${x.label}</td><td>${x.val}</td><td class="n">${Math.round(x.s*100)}%</td><td class="n">${Math.round(x.w*100)}%</td></tr>`).join('')}</tbody></table></div>
+ <p><small>Calibrated on 7 real Content Rewards reviews (5 high bot risk, 2 approved). Each signal acts like a separate alarm: risk = 1 − (1 − weight × strength) multiplied across signals. 0–34 Low, 35–59 Medium, 60+ High. Likes, comments and shares over time are only checked on Live reels or saved live graphs.</small></p></details>
+ <details><summary>Preset shape checks (shape score ${r.bot})</summary><ul class="fl">${r.flags.length?r.flags.map(f=>'<li>'+f.t+'</li>').join(''):'<li>No shape flags triggered.</li>'}</ul></details>
+ <div class="sec">${h2h(r,cp)}</div><div class="sec" id="tsec"></div>
+ <details><summary>Shape match to every preset</summary><div class="tw" style="margin-top:6px"><table><tbody>${NM.map((n,g)=>`<tr><td>${n}</td><td class="n">${r.match[g]}%</td></tr>`).join('')}</tbody></table></div></details>
+ <details><summary>How the bot score was built</summary><div class="tw" style="margin-top:6px"><table><thead><tr><th>Check</th><th class="n">Value</th><th class="n">Risk points</th></tr></thead><tbody>${r.comp.map(x=>`<tr><td>${x.k}</td><td class="n">${x.val}</td><td class="n">${x.pts.toFixed(1)} / ${x.w}</td></tr>`).join('')}</tbody></table></div>
+ <p><small>Score = 75% from the checks above (${r.F.toFixed(0)}) + 25% from the nearest presets’ risk (${r.prior.toFixed(0)}). 0 to 30 Pass, 31 to 60 Hold for review, 61 and up Flag. This reads the view-growth shape only. Engagement ratios, sources and the creator’s history still decide the close calls.</small></p></details>`;
+ renderTarget();bindPresetSave()}
+function h2h(e,c){const G=e.tot,B=e.B,nm=NM[c.g],at=x=>e.hasT?fmtS(new Date((e.O+x*e.Tg)*60000)):'scan '+Math.max(1,Math.round(e.O+x*e.Tg+1)),pc=x=>Math.round(x*100)+'%';
+ const pts=d=>(d>=0?'+':'−')+Math.abs(d*100).toFixed(1)+' pts',cls=d=>Math.abs(d)<0.02?'':d>0?'pos':'neg';
+ const tips=[];c.runs.filter(r=>Math.abs(r.d)>=0.03).slice(0,5).forEach(r=>tips.push(`<b>${at(r.a/12)} to ${at(r.b/12)}</b> (${pc(r.a/12)} to ${pc(r.b/12)} of growth): the clipper added ${nf(r.c*G)} views, ${nm} adds ${nf(r.p*G)}. ${r.d<0?'Short':'Over'} by ${nf(Math.abs(r.d)*G)} (${pts(r.d)}). ${r.d<0?'Views arrive too slowly here.':'Views arrive too fast here.'}`));
+ const s10=c.cps[0];if(Math.abs(s10.c-s10.p)>=0.03)tips.push(`<b>Start:</b> by ${at(.1)} the clipper has ${pc(s10.c)} of its growth; ${nm} has ${pc(s10.p)}. ${s10.c<s10.p?'Slower start than the preset.':'Faster start than the preset.'}`);
+ if(c.cross.length)tips.push(`<b>Crossings:</b> the lines cross ${c.cross.length} time${c.cross.length>1?'s':''}, at ${c.cross.slice(0,6).map(x=>at(x)).join(', ')}${c.cross.length>6?' and more':''}. At each one the clipper switches between ahead and behind.`);
+ if(e.still)tips.push(`<b>End:</b> the clipper is still gaining views at the last scan, so growth may not be finished. Compare again once it levels off.`);
+ if(!tips.length)tips.push(`No stretch differs by 3 points or more. This graph already follows ${nm} closely.`);
+ return`<h2>Head to head: clipper vs ${nm}</h2>
+ <p>Shape match <b>${c.match}%</b> · average gap <b>${(c.mad*100).toFixed(1)} pts</b> · biggest gap <b>${nf(Math.abs(c.mx)*G)} views ${c.mx<0?'behind':'ahead'}</b> (${pts(c.mx)}) at ${at(c.mxx)} · the clipper is ahead of ${nm} ${pc(c.ahead)} of the time.<br><small>1 pt = 1% of the ${nf(G)} growth views (${nf(G/100)} views). Both graphs are lined up so growth starts and reaches 99.5% at the same moments.</small></p>
+ <h2 style="margin-top:12px">Breaking points</h2><ul>${tips.map(t=>'<li>'+t+'</li>').join('')}</ul>
+ <h2 style="margin-top:12px">Checkpoints</h2><div class="tw"><table><thead><tr><th>Point in growth</th><th>Time</th><th class="n">Clipper total</th><th class="n">${nm} total</th><th class="n">Difference</th></tr></thead><tbody>
+ ${c.cps.map(q=>`<tr><td>${pc(q.x)}</td><td>${at(q.x)}</td><td class="n">${nf(B+q.c*G)}</td><td class="n">${nf(B+q.p*G)}</td><td class="n ${cls(q.c-q.p)}">${(q.c>=q.p?'+':'−')+nf(Math.abs(q.c-q.p)*G)} (${pts(q.c-q.p)})</td></tr>`).join('')}</tbody></table></div>
+ <h2 style="margin-top:12px">Phase by phase (12 equal slices of growth time)</h2><div class="tw"><table><thead><tr><th>Phase</th><th>Time window</th><th class="n">Clipper +views</th><th class="n">${nm} +views</th><th class="n">Difference</th></tr></thead><tbody>
+ ${c.ph.map((q,k)=>`<tr><td>${k+1}</td><td>${at(q.a)} to ${at(q.b)}</td><td class="n">${nf(q.c*G)}</td><td class="n">${nf(q.p*G)}</td><td class="n ${cls(q.c-q.p)}">${(q.c>=q.p?'+':'−')+nf(Math.abs(q.c-q.p)*G)} (${pts(q.c-q.p)})</td></tr>`).join('')}</tbody></table></div>`}
+function renderTarget(){const e=window._exr;if(!e||!$('tsec'))return;const nm=NM[tgt],tw=tweak(e,tgt,TW),txt=logText(tw,TW.fmt);
+ const chk=score(parse(txt),{base:!!e.first}),keep=TW.mode!='even'||!e.hasT,moved=keep?tw.reduce((s,r)=>s+(r.o!=null&&!r.base?Math.abs(r.v-r.o):0),0)/2:null;
+ const big=keep?tw.filter(r=>!r.base&&r.o!=null).map(r=>({r,d:r.v-r.o})).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,3):[];
+ const tm=r=>r.t!=null?fmtS(new Date(r.t*60000)):'';
+ $('tsec').innerHTML=`<h2>Target log: this clip reshaped to follow ${nm}</h2>
+ <small>Same total views and the same growth time as the clipper’s log, with views placed so the running total follows ${nm} exactly. Use it as the reference for what this clip would look like on that preset.</small>
+ <div class="ctl" style="margin-top:10px"><label>Scan times<select id="tmode"><option value="keep">Keep the clipper’s scan times</option><option value="even"${e.hasT?'':' disabled'}>Even interval</option></select></label>
+ <label>Interval (minutes)<input id="tm" type="number" min="1" max="720" value="${TW.m}"${TW.mode=='even'&&e.hasT?'':' disabled'}></label>
+ <label>Output layout<select id="tfmt"><option value="block">Block (your tracker)</option><option value="line">One line per scan</option></select></label>
+ <label class="ck"><span><input type="checkbox" id="tdrop"${TW.drop?' checked':''}> Drop +0 scans</span><small>Your tracker never logs +0. Dropping them hides flat stretches, so staircase-type shapes look like slow ramps.</small></label></div>
+ <p>${keep?`To match ${nm}, <b>${nf(moved)} views</b> move between scans. Biggest changes: ${big.map(b=>`scan ${b.r.i} ${tm(b.r)} ${b.d>0?'+':'−'}${nf(Math.abs(b.d))}`).join(', ')}.<br>`:''}Check: this target log scores <b>${chk.err?'n/a':chk.match[tgt]+'%'}</b> shape match to ${nm} in this tool${chk.err?'':`, bot score ${chk.bot} (${chk.tier})`}.${!chk.err&&chk.match[tgt]<80&&TW.drop?` <b class="neg">Dropping +0 scans removes the flat stretches this preset needs. Untick “Drop +0 scans” for a faithful target.</b>`:''}</p>
+ <div class="tw"><table><thead><tr><th class="n">Scan</th><th>Time</th>${keep?'<th class="n">Clipper +views</th>':''}<th class="n">Target +views</th>${keep?'<th class="n">Change</th>':''}<th class="n">Target total</th></tr></thead><tbody>
+ ${tw.map(r=>{const d=r.o!=null?r.v-r.o:0;return`<tr><td class="n">${r.i}</td><td>${tm(r)}</td>${keep?`<td class="n">${r.o!=null?nf(r.o):''}</td>`:''}<td class="n">${nf(r.v)}</td>${keep?`<td class="n ${r.base||Math.abs(d)<1?'':d>0?'pos':'neg'}">${r.base?'starting count':(d>0?'+':d<0?'−':'')+nf(Math.abs(d))}</td>`:''}<td class="n">${nf(r.c)}</td></tr>`}).join('')}</tbody></table></div>
+ <textarea id="tout" readonly spellcheck="false">${txt}</textarea>
+ <div class="btns"><button class="b" id="tcopy">Copy target log</button><button class="b alt" id="tdl">Download .txt</button><span id="tst" style="color:var(--mut);font-size:13px"></span></div>
+ <small>Synthetic reference built by this tool. It is not real view data; don’t present it as evidence.</small>`;
+ $('tmode').value=keep?'keep':'even';$('tfmt').value=TW.fmt;
+ $('tmode').onchange=()=>{TW.mode=$('tmode').value;renderTarget()};$('tm').onchange=()=>{TW.m=Math.min(720,Math.max(1,+$('tm').value||20));renderTarget()};
+ $('tfmt').onchange=()=>{TW.fmt=$('tfmt').value;renderTarget()};$('tdrop').onchange=()=>{TW.drop=$('tdrop').checked;renderTarget()};
+ $('tcopy').onclick=()=>{const t=$('tout');(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>$('tst').textContent='Copied.',()=>{t.select();document.execCommand('copy');$('tst').textContent='Copied.'})};
+ $('tdl').onclick=()=>dl(txt,'target_'+nm.replace(/ /g,'_')+'.txt','text/plain')}
+
+/* ---------- live reels (Google Sheet tracker: tracker.gs) ---------- */
+const LS={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return''}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const LV={url:LS.get('lv_url'),key:LS.get('lv_key'),by:LS.get('lv_by'),subs:[],sel:LS.get('lv_sel')||null,cur:null,logs:{},judge:{},filter:'all',busy:false,rates:JSON.parse(LS.get('lv_rates')||'{}'),rm:null};
+$('lurl').value=LV.url;$('lkey').value=LV.key;$('lby').value=LV.by;if(!LV.url)$('lvc').open=true;
+function api(p){if(!LV.url)return Promise.reject(new Error('Connect the tracker first.'));const u=LV.url+(LV.url.includes('?')?'&':'?')+new URLSearchParams({key:LV.key,...p});
+ return fetch(u,{cache:'no-store'}).then(r=>r.json()).then(j=>{if(!j.ok)throw new Error(j.error||'Tracker error.');return j})}
+// cumulative tracker log -> scan rows (first row = starting count). A drop in views is skipped, not counted as negative views.
+function logRows(log){let pv=null;const out=[];log.forEach(a=>{const t=Date.parse(a[0])/60000,v=a[1];if(v==null||isNaN(t))return;if(pv===null){out.push({i:1,v,t,c:v});pv=v;return}if(v<=pv)return;out.push({i:out.length+1,v:v-pv,t,c:v});pv=v});return out}
+function engOf(sub){if(sub.sim&&LV.logs[sub.id]){const L=LV.logs[sub.id],l=L[L.length-1];if(l){sub.views=l[1];sub.likes=l[2];sub.comments=l[3];sub.shares=l[4];sub.saves=l[5];sub.reach=l[6]}}
+ return sub.likes!=null||sub.comments!=null||sub.shares!=null?{l:sub.likes||0,c:sub.comments||0,s:sub.shares||0}:null}
+const serOf=log=>({likes:log.map(a=>({t:Date.parse(a[0])/60000,c:a[2]})),comments:log.map(a=>({t:Date.parse(a[0])/60000,c:a[3]})),shares:log.map(a=>({t:Date.parse(a[0])/60000,c:a[4]}))});
+function extRows(rw,s){const lc=s&&s.lastCheck?Date.parse(s.lastCheck)/60000:null;if(rw.length&&lc&&lc>rw[rw.length-1].t+1)return rw.concat([{i:rw.length+1,v:0,t:lc,c:rw[rw.length-1].c}]);return rw}
+function judge(sub,log){const rw=extRows(logRows(log),sub);if(rw.length<5)return{wait:1,n:rw.length};const R=radar(rw.map(q=>({t:q.t,c:q.c})),{eng:engOf(sub),series:serOf(log),step:true});return R.err?{wait:1,n:rw.length}:R}
+const VERD=j=>!j?['pd','Loading…']:j.wait?['pd','Collecting data']:j.tier=='High'?['hi','High risk · '+j.score+(j.early?' (early)':'')]:j.tier=='Medium'?['md','Medium · '+j.score+(j.early?' (early)':'')]:['lo','Low · '+j.score+(j.early?' (early)':'')];
+const DEC=d=>d=='approved'?['ok','Approved']:d=='rejected'?['rj','Rejected']:['pd','Pending'];
+function lastHour(log){if(!log||log.length<2)return null;const L=log[log.length-1],t=Date.parse(L[0])-3600000;let b=log[0];for(const a of log){if(Date.parse(a[0])<=t)b=a;else break}return L[1]-b[1]}
+function dayOf(s,td){if(s.status=='done')return'Tracking finished';const d=Math.floor((Date.now()-Date.parse(s.submitted))/86400000)+1;return'Day '+Math.min(d,td)+' of '+td}
+function drawList(){const td=LV.td||15,f=LV.filter;document.querySelectorAll('#lvf button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f==f));
+ const subs=LV.subs.filter(s=>{const j=LV.judge[s.id];return f=='all'||(f=='review'&&s.decision=='pending')||(f=='flag'&&j&&!j.wait&&j.tier=='High')||s.decision==f});
+ $('lvlist').innerHTML=subs.length?subs.map(s=>{const j=LV.judge[s.id],v=VERD(j),d=DEC(s.decision),lh=lastHour(LV.logs[s.id]);
+  return`<button class="lvr${s.id==LV.sel?' on':''}" data-id="${esc(s.id)}">${s.thumb?`<img src="${esc(s.thumb)}" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML='<div class=&quot;ph&quot;></div>'">`:'<div class="ph"></div>'}
+  <div><div class="nm">${esc(s.name||'Clipper')}${s.sim?' <span class="bdg simb" style="padding:1px 6px;font-size:10.5px">SIMULATED</span>':''}</div><div class="sb">${esc(s.link.replace(/^https?:\/\/(www\.)?/,'').slice(0,42))}<br>${dayOf(s,td)}${s.note?' · <span class="neg">'+esc(s.note.slice(0,80))+'</span>':''}</div></div>
+  <div class="vw">${s.views!=null?nf(s.views):'—'}<small>${lh!=null?'+'+nf(lh)+' last hour':'views'}</small></div>
+  <div class="bd"><span class="bdg ${v[0]}">${v[1]}</span>${(()=>{const a=LV.ver&&LV.ver[s.id];return a&&a.aiTier?`<span class="bdg aic ${a.aiTier=='High'?'hi':a.aiTier=='Medium'?'md':'lo'}">AI: ${esc(a.aiTier)}</span>`:''})()}<span class="bdg ${d[0]}">${d[1]}</span></div></button>`}).join(''):`<p class="lvempty">${LV.subs.length?'Nothing in this filter.':'No reels submitted yet.'}</p>`;
+ document.querySelectorAll('.lvr').forEach(b=>b.onclick=()=>{LV.sel=b.dataset.id;LS.set('lv_sel',LV.sel);pillM='views';LV.rm=null;drawList();liveShow(true)})}
+async function getLog(s,max){if(s.sim)return genSim(s.p,s);const l=await api({action:'log',id:s.id,max});return l.log}
+function usagePct(u){if(!u||!u.value)return null;let o;try{o=typeof u.value=='string'?JSON.parse(u.value):u.value}catch(e){return null}let m=0,wait=0;
+ (function walk(v){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v=='object'){['call_count','total_time','total_cputime'].forEach(k=>{if(typeof v[k]=='number')m=Math.max(m,v[k])});if(v.estimated_time_to_regain_access>0)wait=Math.max(wait,v.estimated_time_to_regain_access);Object.values(v).forEach(x=>{if(x&&typeof x=='object')walk(x)})}})(o);return{pct:m,wait,at:u.at}}
+function drawStat(){const a=LV.acc||[],u=usagePct(LV.usage),names=a.map(x=>typeof x=='string'?x:(x.username||x.name||x.id||'')).filter(Boolean),sims=simList().length;
+ $('lvstat').innerHTML=(LV.url?`<span>${names.length?'Accounts ('+names.length+'): '+names.map(n=>'@'+esc(n)).join(', '):'No accounts reported yet'}</span>`+(u?`<span class="${u.pct>75||u.wait?'warn':''}">Meta API usage ${Math.round(u.pct)}%${u.wait?' · blocked for '+u.wait+' min':''}${u.pct>75?' · close to the limit: raise POLL_MIN or stop some reels':''}</span>`:'<span>API usage: not reported yet</span>'):'<span>Tracker not connected</span>')+(LV.url?(LV.verOK?`<span>Server judging: on${(()=>{const t=Object.values(LV.ver||{}).map(v=>Date.parse(v.judgedAt)).filter(x=>!isNaN(x));return t.length?' · last run '+hm(new Date(Math.max(...t))):''})()}${Object.values(LV.ver||{}).some(v=>v.aiTier)?' · AI on':''}</span>`:'<span>Server judging: not connected (add the verdicts line to doGet)</span>'):'')+(sims?`<span>${sims} simulated reel${sims>1?'s':''}</span>`:'')}
+async function liveRefresh(manual){if(LV.busy)return;LV.busy=true;if(manual)$('lvst').textContent='Loading…';let err=null,subs=[];
+ try{if(LV.url){const j=await api({action:'list'});subs=j.subs||[];LV.td=j.trackDays||15;LV.acc=j.accounts||[];LV.usage=j.usage||null;try{const v=await api({action:'verdicts'});LV.ver={};(v.verdicts||[]).forEach(x=>LV.ver[x.id]=x);LV.verOK=true}catch(e){LV.verOK=false}}}catch(e){err=e}
+ try{LV.subs=subs.concat(simList().map(simSub)).sort((a,b)=>Date.parse(b.submitted)-Date.parse(a.submitted));
+  if(LV.sel&&!LV.subs.some(s=>s.id==LV.sel))LV.sel=null;if(!LV.sel&&LV.subs.length)LV.sel=LV.subs[0].id;drawList();drawStat();
+  const q=[...LV.subs];await Promise.all([0,1,2,3].map(async()=>{while(q.length){const s=q.shift();try{const max=s.id==LV.sel?3000:600;LV.logs[s.id]=await getLog(s,max);LV.judge[s.id]=judge(s,LV.logs[s.id])}catch(e){}}}));
+  drawList();await liveShow(false);
+  if(err){$('lvst').innerHTML='<span class="neg">'+esc(err.message)+'</span> Check the link ends in /exec, the web app access is “Anyone”, and the key matches.';$('lvc').open=true}
+  else $('lvst').textContent='Updated '+hm(new Date())+' · '+LV.subs.filter(s=>s.status=='tracking').length+' reel(s) tracking. Refreshes every minute while this tab is open.'}
+ finally{LV.busy=false}}
+async function liveShow(fetchLog){const s=LV.subs.find(x=>x.id==LV.sel);LV.cur=s||null;
+ if(!s){window._exr=null;$('res').innerHTML='';$('pnote').innerHTML='';render();return}
+ if(fetchLog||!LV.logs[s.id]){try{LV.logs[s.id]=await getLog(s,3000);LV.judge[s.id]=judge(s,LV.logs[s.id])}catch(e){}}
+ const log=LV.logs[s.id]||[],rw=extRows(logRows(log),s);
+ $('sname').value=s.name||'';$('sdate').value=s.posted?new Date(s.posted).toISOString().slice(0,10):'';$('slk').value=s.likes??'';$('scm').value=s.comments??'';$('ssh').value=s.shares??'';$('scpm').value=LV.rates[s.id]??'';
+ rvSt={k:s.decision||'pending',d:s.decidedAt?new Date(s.decidedAt):new Date()};
+ const head=`<b>${esc(s.name||'Clipper')}</b>${s.sim?' · <b>SIMULATED</b> (made from a preset, not Instagram data)':` · <a href="${esc(s.link)}" target="_blank" rel="noopener">open reel</a>`} · ${dayOf(s,LV.td||15)} · ${rw.length} view changes logged${s.lastCheck?' · last checked '+hm(new Date(s.lastCheck)):''}${s.decidedBy?' · '+esc(s.decision)+' by '+esc(s.decidedBy):''}
+  <div class="lvact"><button class="b alt" id="lvcsv">Download log (CSV)</button>${s.status=='tracking'?'<button class="b alt" id="lvstop">Stop tracking</button>':''}<button class="b alt" id="lvrm">${LV.rm==s.id?'Click again to remove':'Remove'}</button></div>`;
+ if(rw.length<9){window._exr=null;$('res').innerHTML='';render();$('pnote').innerHTML=head+`<p>Collecting data: ${rw.length} view change${rw.length==1?'':'s'} so far. Judging starts at 9.</p>`;bindLv(s);return}
+ doScore({rows:rw,key:s.id,base:rw[0].v>0,series:serOf(log),step:true});$('pnote').innerHTML=head+'<br>'+$('pnote').innerHTML;bindLv(s)}
+function bindLv(s){if(s.sim){const c0=$('lvcsv');if(c0)c0.onclick=()=>dl('time,views,likes,comments,shares,saves,reach\n'+(LV.logs[s.id]||[]).map(a=>a.map(x=>x==null?'':x).join(',')).join('\n'),'simulated_'+s.id+'.csv','text/csv');const st0=$('lvstop');if(st0)st0.remove();$('lvrm').onclick=()=>{if(LV.rm!=s.id){LV.rm=s.id;liveShow(false);return}simSave(simList().filter(x=>x.id!=s.id));LV.rm=null;LV.sel=null;liveRefresh(true)};return}
+const c=$('lvcsv');if(c)c.onclick=()=>dl('time,views,likes,comments,shares,saves,reach\n'+(LV.logs[s.id]||[]).map(a=>a.map(x=>x==null?'':x).join(',')).join('\n'),'reel_'+s.id+'.csv','text/csv');
+ const st=$('lvstop');if(st)st.onclick=()=>api({action:'stop',id:s.id}).then(()=>liveRefresh(true)).catch(e=>alertMsg(e));
+ $('lvrm').onclick=()=>{if(LV.rm!=s.id){LV.rm=s.id;liveShow(false);return}api({action:'remove',id:s.id}).then(()=>{LV.rm=null;LV.sel=null;liveRefresh(true)}).catch(e=>alertMsg(e))}}
+function alertMsg(e){$('lvst').innerHTML='<span class="neg">'+esc(e.message||e)+'</span>'}
+function liveDecide(k){const s=LV.cur;if(!s)return;rvSt={k,d:new Date()};renderReview();if(s.sim){simSave(simList().map(x=>x.id==s.id?{...x,decision:k,decidedAt:new Date().toISOString(),decidedBy:LV.by||''}:x));s.decision=k;s.decidedAt=new Date().toISOString();drawList();return}
+ api({action:'decide',id:s.id,d:k,by:LV.by||''}).then(j=>{Object.assign(s,j.sub);drawList()}).catch(e=>{alertMsg(e);rvSt={k:s.decision,d:new Date()};renderReview()})}
+const MET={views:{i:1,nm:'Views',cl:'#6aa7f5'},likes:{i:2,nm:'Likes',cl:'#ff6f91'},comments:{i:3,nm:'Comments',cl:'#ffa24c'},shares:{i:4,nm:'Shares',cl:'#3fd6a5'},eng:{nm:'Engagement rate',cl:'#e6c35c'}};
+// live log -> carry-forward points (missing readings keep the last value; never treated as 0), extended to the last check
+function livePts(L,s){const last=[];const out=[];L.forEach(a=>{const t=Date.parse(a[0])/60000;if(isNaN(t))return;for(let k=1;k<7;k++)if(a[k]!=null)last[k]=a[k];out.push({t,v:last.slice()})});
+ const lc=s&&s.lastCheck?Date.parse(s.lastCheck)/60000:null;if(out.length&&lc&&lc>out[out.length-1].t+1)out.push({t:lc,v:out[out.length-1].v.slice()});return out}
+const erCR=v=>v[1]>0?((v[2]||0)+(v[3]||0)+(v[4]||0))/v[1]:null,erAll=v=>v[1]>0?((v[2]||0)+(v[3]||0)+(v[4]||0)+(v[5]||0))/v[1]:null;
+function buildMetric(){const s=LV.cur,m=MET[pillM],cr=pov=='cr',pts=livePts(LV.logs[LV.sel]||[],s);if(pts.length<2)return null;
+ const x0=pts[0].t,x1=pts[pts.length-1].t,span=x1-x0||1,pl=q=>{const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():hm(d)},T=q=>ttl(q.x1,span);
+ if(pillM=='eng'){const P=pts.map(p=>({t:p.t,a:erCR(p.v),b:erAll(p.v)})).filter(p=>p.a!=null);if(P.length<2)return null;
+  const sc=P.map((p,i)=>({x0:i?P[i-1].t:p.t,x1:p.t,c:p.a,b:p.b,txt:`${fmtS(new Date(p.t*60000))} · engagement ${(p.a*100).toFixed(1)}% (incl. saves ${(p.b*100).toFixed(1)}%)`}));
+  return{title:'Engagement rate over time',t2:'',main:{hk:'er',xk:'time',xmin:x0,xmax:x1,ymx:Math.max(.01,...P.map(p=>Math.max(p.a,p.b||0))),pct:1,mode:'line',scans:sc,pl,
+   tt:q=>({title:T(q),rows:[[m.cl,'Likes + comments + shares',(q.c*100).toFixed(1)+'%'],['#9a9ca3','Incl. saves',q.b==null?'—':(q.b*100).toFixed(1)+'%']]}),
+   series:[{t:'line',color:'#9a9ca3',w:1.4,dash:[5,4],step:1,pts:sc.map(q=>[q.x1,q.b])},{t:'line',color:m.cl,w:2.2,main:1,step:1,pts:sc.map(q=>[q.x1,q.c])}]},sub:null,leg:[[-2,'Likes + comments + shares ÷ views (CR)'],[-3,'Including saves']]}}
+ const P=pts.map(p=>({t:p.t,y:p.v[m.i]})).filter(p=>p.y!=null);if(P.length<2)return null;
+ const yAt=t=>{let y=P[0].y;for(const p of P){if(p.t<=t)y=p.y;else break}return y};
+ const sc=P.map((p,i)=>({x0:i?P[i-1].t:p.t,x1:p.t,c:p.y,v:i?Math.max(0,p.y-P[i-1].y):0,txt:`${fmtS(new Date(p.t*60000))} · ${m.nm} ${nf(p.y)}`}));
+ const C={hk:'rows',xk:'time',xmin:x0,xmax:x1,ymx:Math.max(1,...P.map(p=>p.y)),mode:'line',scans:sc,pl,tt:q=>({title:T(q),rows:[[m.cl,m.nm,nf(q.c)]]}),
+  series:[{t:'line',color:m.cl,w:2.2,main:1,fill:1,step:1,pts:sc.map(q=>[q.x1,q.c])}]};
+ // gained per clock hour (carry-forward totals at each hour edge)
+ const hb=[];for(let h=Math.floor(x0/60)*60;h<x1;h+=60){const a=Math.max(h,x0),b=Math.min(h+60,x1),g=yAt(b)-yAt(a);hb.push({x0:h,x1:h+60,v:Math.max(0,g),c:yAt(b),txt:`${fmtS(new Date(h*60000))} to ${hm(new Date((h+60)*60000))} · +${nf(Math.max(0,g))} ${m.nm.toLowerCase()}`})}
+ const H={hk:'hours',xk:'time',xmin:x0,xmax:x1,ymx:Math.max(1,...hb.map(q=>q.v)),mode:'bars',scans:hb,pl,tt:q=>({title:T(q)+' · 1 hour',rows:[[m.cl,m.nm+' gained',nf(q.v)]]}),series:[{t:'bars',color:m.cl}]};
+ const Pr={...C,hk:'rows',mode:'bars',ymx:Math.max(1,...sc.map(q=>q.v)),tt:q=>({title:T(q),rows:[[m.cl,m.nm+' added',nf(q.v)]]}),series:[{t:'bars',color:m.cl}]};
+ if(met=='rate')return{title:m.nm+' gained per hour',t2:m.nm+' total',main:H,sub:C,leg:[]};
+ if(met=='per')return{title:m.nm+' added per reading',t2:m.nm+' total',main:Pr,sub:C,leg:[]};
+ return{title:m.nm+' total',t2:m.nm+' gained per hour',main:C,sub:H,leg:[]}}
+$('lconn').onclick=()=>{LV.url=$('lurl').value.trim();LV.key=$('lkey').value.trim();LV.by=$('lby').value.trim();LS.set('lv_url',LV.url);LS.set('lv_key',LV.key);LS.set('lv_by',LV.by);
+ if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(LV.url)){alertMsg('The link should start with https://script.google.com/');return}$('lvc').open=false;liveRefresh(true)};
+$('lvsub').onclick=async()=>{const link=$('lvlink').value.trim();if(!/instagram\.com\/(?:[A-Za-z0-9_.]+\/)?(reels?|p|tv)\//.test(link)){$('lvmsg').innerHTML='<span class="neg">Paste an Instagram reel link.</span>';return}
+ $('lvmsg').textContent='Finding the reel on your connected accounts…';$('lvsub').disabled=true;
+ try{const j=await api({action:'submit',link,name:$('lvname').value.trim()}),r=$('lvrate').value.trim();if(r!==''){LV.rates[j.sub.id]=+r;LS.set('lv_rates',JSON.stringify(LV.rates))}
+  $('lvmsg').textContent='Tracking started. First reading: '+(j.sub.views!=null?nf(j.sub.views)+' views':'pending')+'.';$('lvlink').value='';LV.sel=j.sub.id;LS.set('lv_sel',LV.sel);await liveRefresh(true)}
+ catch(e){$('lvmsg').innerHTML='<span class="neg">'+esc(e.message)+'</span>'}finally{$('lvsub').disabled=false}};
+document.querySelectorAll('#lvf button').forEach(b=>b.onclick=()=>{LV.filter=b.dataset.f;drawList()});
+$('scpm').addEventListener('input',()=>{if(cur==7&&LV.sel){const v=$('scpm').value.trim();if(v==='')delete LV.rates[LV.sel];else LV.rates[LV.sel]=+v;LS.set('lv_rates',JSON.stringify(LV.rates))}});
+setInterval(()=>{if(cur==7&&(LV.url||simList().length)&&!document.hidden)liveRefresh(false)},60000);
+/* ---------- simulated reels (demo data from the presets, same log format as the tracker) ---------- */
+const SMK='sim_reels',simList=()=>{try{return JSON.parse(localStorage.getItem(SMK)||'[]')}catch(e){return[]}},simSave=a=>{try{localStorage.setItem(SMK,JSON.stringify(a))}catch(e){}};
+const AUTO=['low','organic','lock','organic','low'];
+function simSub(p){const now=Date.now(),td=LV.td||15,T0=now-p.days*86400000,end=Math.min(now,T0+td*86400000);
+ return{id:p.id,sim:1,p,link:'',account:'SIMULATED',name:'SIM · '+NM[p.preset]+' · '+({organic:'organic',low:'bought views',lock:'bought package'}[p.style]),posted:new Date(T0).toISOString(),submitted:new Date(T0).toISOString(),ends:new Date(T0+td*86400000).toISOString(),
+  status:p.days>=td?'done':'tracking',decision:p.decision||'pending',decidedAt:p.decidedAt||null,decidedBy:p.decidedBy||'',lastCheck:new Date(end).toISOString(),note:'Simulated data made from the '+NM[p.preset]+' preset. Not from Instagram.',thumb:'',views:null,likes:null,comments:null,shares:null,saves:null,reach:null}}
+// Instagram updates in batches: a reading lands every few minutes. Bought numbers stop dead; organic ones keep a slow tail and engagement lags views.
+function genSim(p,sub){const r=prng(p.seed),td=LV.td||15,now=Date.now()/60000,T0=now-p.days*1440,Te=Math.min(now,T0+td*1440),W=p.win*1440,V=p.views,org=p.style=='organic',pr=P[p.preset];
+ const va=t=>{if(t<=T0)return 0;const x=(t-T0)/W;let f=F(pr,x);if(org){f=f*.88+(x>1?.12*(1-Math.exp(-(t-T0-W)/(4*1440))):0)}return V*f};
+ const eng=t=>org?[.095*va(t-60)*(1+.04*Math.sin(t/700)),.0016*va(t-90),.022*va(t-120),.016*va(t-150),.78*va(t)]:p.style=='lock'?[.105*va(t),.00105*va(t),.03*va(t),.02*va(t),.6*va(t)]:[.006*va(t)+3,.0002*va(t),.0008*va(t),.0005*va(t),.4*va(t)];
+ const out=[];let prev=null,t=T0;
+ while(t<=Te+1e-6){const e=eng(t),row=[Math.floor(va(t)),...e.map(Math.floor)].map((v,k)=>prev?Math.max(v,prev[k]):Math.max(0,v));
+  if(!prev||row.some((v,k)=>v!==prev[k])){out.push([new Date(t*60000).toISOString(),...row]);prev=row}
+  if(t>=Te)break;t=Math.min(Te,t+(org?3+r()*17:5+r()*10))}
+ if(sub&&prev){[sub.views,sub.likes,sub.comments,sub.shares,sub.saves,sub.reach]=prev}return out}
+presetSelSim();function presetSelSim(){$('simp').innerHTML=NM.slice(0,5).map((n,g)=>`<option value="${g}">${n}</option>`).join('')}
+$('simadd').onclick=()=>{const g=+$('simp').value,st=$('sims').value,a=simList();
+ a.unshift({id:'sim_'+Date.now().toString(36),preset:g,style:st=='auto'?AUTO[g]:st,views:Math.max(1000,+$('simv').value||100000),win:Math.min(15,Math.max(.5,+$('simw').value||4)),days:Math.min(15,Math.max(1,+$('simd2').value||10)),seed:Math.floor(Math.random()*1e9)});
+ simSave(a);LV.sel=a[0].id;liveRefresh(true)};
+function bindPresetSave(){const b=$('psave');if(!b)return;$('pnm').value=sub().name||'';b.onclick=()=>{const e=window._exr;if(!e)return;const name=$('pnm').value.trim();
+ if(!name){$('pmsg').textContent='Give it a name first.';return}if(NM.some(n=>n.toLowerCase()==name.toLowerCase())){$('pmsg').textContent='That name is taken.';return}
+ const p=shapeOf(e),prior=window._rad?window._rad.score:e.bot,a=cpGet();a.push({name,p,prior,saved:new Date().toISOString()});try{localStorage.setItem(CPK,JSON.stringify(a))}catch(err){$('pmsg').textContent='Could not save (browser storage blocked).';return}
+ addPreset(name,p,prior);presetUI();drawSaved();doScore({keep:1,series:SER});$('pmsg').textContent='Saved as a preset. Pick it under “Compare head to head with”, or see it on the All presets tab.'}}
+$('cmpb').onclick=()=>{showCmp=!showCmp;render()};
+const SVK='saved_graphs',svGet=()=>{try{return JSON.parse(localStorage.getItem(SVK)||'[]')}catch(e){return[]}},svSet=a=>{try{localStorage.setItem(SVK,JSON.stringify(a));return true}catch(e){return false}};
+function thin(a,n){if(!a||a.length<=n)return a;const o=[],st=(a.length-1)/(n-1);for(let k=0;k<n;k++)o.push(a[Math.round(k*st)]);return o}
+$('saveb').onclick=()=>{const e=window._exr;if(!e)return;const sb=sub();let text,series=null,link='';
+ if(cur==7&&LV.cur){const log=LV.logs[LV.cur.id]||[],rw=logRows(log);text=rw.map((q,i)=>`${i+1}\n${fmtS(new Date(q.t*60000))}\n+${q.v}\n=${q.c}`).join('\n');const sr=serOf(thin(log,600));series=sr;link=LV.cur.link}
+ else{text=$('paste').value;series=SER}
+ const a=svGet(),item={id:Date.now().toString(36),name:sb.name||'Clip',saved:new Date().toISOString(),text,base:$('base').checked,eng:{l:sb.l,c:sb.c,s:sb.s},cpm:sb.cpm,cap:sb.cap,date:sb.date,series,link};
+ a.unshift(item);if(!svSet(a.slice(0,40))){$('saveb').textContent='Storage full';return}$('saveb').textContent='Saved ✓';setTimeout(()=>$('saveb').textContent='Save graph',1500);drawSaved()};
+function drawSaved(){const a=svGet(),cp=cpGet();$('svl').innerHTML=(cp.length?'<b>Your presets</b>'+cp.map(x=>`<div class="sv"><span>${esc(x.name)} · bot score when saved ${x.prior}</span><button data-cp="${esc(x.name)}">Delete</button></div>`).join(''):'')+(a.length?'<b>Saved graphs</b>'+a.map(x=>`<div class="sv"><span>${esc(x.name)} · saved ${fmtS(new Date(x.saved))}${x.series?' · with likes/comments/shares':''}</span><button data-ld="${x.id}">Load and compare</button><button data-dl="${x.id}">Delete</button></div>`).join(''):'');
+ $('svl').querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{try{localStorage.setItem(CPK,JSON.stringify(cpGet().filter(x=>x.name!=b.dataset.cp)))}catch(e){}location.reload()});$('svl').querySelectorAll('[data-ld]').forEach(b=>b.onclick=()=>loadSaved(b.dataset.ld));$('svl').querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{svSet(svGet().filter(x=>x.id!=b.dataset.dl));drawSaved()})}
+function loadSaved(id){const x=svGet().find(q=>q.id==id);if(!x)return;if(cur!=6)tab(6);$('paste').value=x.text;$('sname').value=x.name||'';$('sdate').value=x.date||'';$('slk').value=x.eng&&x.eng.l!=null?x.eng.l:'';$('scm').value=x.eng&&x.eng.c!=null?x.eng.c:'';$('ssh').value=x.eng&&x.eng.s!=null?x.eng.s:'';$('scpm').value=x.cpm??'';$('scap').value=x.cap??'';
+ SER=x.series||null;lastTxt=null;doScore({base:x.base});$('base').checked=x.base;doScore({keep:1})}
+$('paste').addEventListener('input',()=>{SER=null});
+const capSync=v=>{LS.set('payout_cap',v);$('scap').value=v;$('lvcap').value=v};capSync(LS.get('payout_cap'));
+$('lvcap').addEventListener('input',()=>{capSync($('lvcap').value);renderReview()});$('scap').addEventListener('input',()=>{LS.set('payout_cap',$('scap').value);$('lvcap').value=$('scap').value;renderReview()});
+drawSaved();
+$('score').onclick=()=>doScore();addEventListener('resize',render);matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
+sync();tab(LV.url||simList().length?7:0);
+</script></body></html>
