@@ -71,6 +71,7 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600;font-size:14px}
 .pill[data-m=eng]{color:#e6c35c}
 .lvempty{color:var(--mut);font-size:13.5px;margin:6px 0}
 .lvact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.lvpg{margin:6px 0 0;text-align:right}.lvpg .b{font-size:12.5px;padding:5px 10px}
 .rvb .apb,.rvb .rjb{white-space:nowrap}
 img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 .pill{gap:6px}.pill .lb{display:none}.pill.on .lb{display:inline}
@@ -182,6 +183,7 @@ img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 <label>Days tracked so far<input id="simd2" type="number" min="1" max="30" step="1" value="10"></label></div>
 <div class="btns"><button class="b alt" id="simadd">Add simulated reel</button></div></details>
 <div class="lvhd"><h2>Submissions</h2><div class="seg2" id="lvf"><button data-f="all">All</button><button data-f="review">Needs review</button><button data-f="flag">Flagged</button><button data-f="approved">Approved</button><button data-f="rejected">Rejected</button></div></div>
+<p class="lvpg"><button class="b alt" id="lvpurge" title="Deletes reels that are approved or rejected and have finished tracking, plus removed reels: their row, log tab and verdicts. Download a CSV first if you want to keep a log.">Delete finished reels</button></p>
 <div id="lvlist" class="lvl"><p class="lvempty">Connect the tracker to see submissions.</p></div>
 <div id="lvst" style="font-size:12.5px;color:var(--mut);margin-top:8px"></div>
 </div>
@@ -779,7 +781,7 @@ function renderTarget(){const e=window._exr;if(!e||!$('tsec'))return;const nm=NM
 
 /* ---------- live reels (Google Sheet tracker: tracker.gs) ---------- */
 const LS={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return''}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-const LV={url:LS.get('lv_url'),key:LS.get('lv_key'),by:LS.get('lv_by'),subs:[],sel:LS.get('lv_sel')||null,cur:null,logs:{},judge:{},filter:'all',busy:false,rates:JSON.parse(LS.get('lv_rates')||'{}'),rm:null};
+const LV={url:LS.get('lv_url'),key:LS.get('lv_key'),by:LS.get('lv_by'),subs:[],sel:LS.get('lv_sel')||null,cur:null,logs:{},judge:{},filter:'all',busy:false,rates:JSON.parse(LS.get('lv_rates')||'{}'),rm:null,del:null};
 $('lurl').value=LV.url;$('lkey').value=LV.key;$('lby').value=LV.by;if(!LV.url)$('lvc').open=true;
 function api(p){if(!LV.url)return Promise.reject(new Error('Connect the tracker first.'));const u=LV.url+(LV.url.includes('?')?'&':'?')+new URLSearchParams({key:LV.key,...p});
  return fetch(u,{cache:'no-store'}).then(r=>r.json()).then(j=>{if(!j.ok)throw new Error(j.error||'Tracker error.');return j})}
@@ -789,11 +791,12 @@ function engOf(sub){if(sub.sim&&LV.logs[sub.id]){const L=LV.logs[sub.id],l=L[L.l
  return sub.likes!=null||sub.comments!=null||sub.shares!=null?{l:sub.likes||0,c:sub.comments||0,s:sub.shares||0}:null}
 const serOf=log=>({views:log.map(a=>({t:Date.parse(a[0])/60000,c:a[1]})),likes:log.map(a=>({t:Date.parse(a[0])/60000,c:a[2]})),comments:log.map(a=>({t:Date.parse(a[0])/60000,c:a[3]})),shares:log.map(a=>({t:Date.parse(a[0])/60000,c:a[4]}))});
 function extRows(rw,s){const lc=s&&s.lastCheck?Date.parse(s.lastCheck)/60000:null;if(rw.length&&lc&&lc>rw[rw.length-1].t+1)return rw.concat([{i:rw.length+1,v:0,t:lc,c:rw[rw.length-1].c}]);return rw}
-function judge(sub,log){const rw=extRows(logRows(log),sub);if(rw.length<5)return{wait:1,n:rw.length};const R=radar(rw.map(q=>({t:q.t,c:q.c})),radOpt({eng:engOf(sub),series:serOf(log),step:false}));return R.err?{wait:1,n:rw.length}:R}
+function judge(sub,log){const rw=extRows(logRows(log),sub);if(rw.length<5)return{wait:1,n:rw.length};const R=radar(rw.map(q=>({t:q.t,c:q.c})),radOpt({eng:engOf(sub),series:serOf(log),step:false}));return R.err||R.span<LIVE_MIN_SPAN?{wait:1,n:rw.length}:R}
+const LIVE_MIN_SPAN=360; // like radar.gs: no tier for a live reel until 6 h of readings (first hours give false Highs)
 const VERD=j=>!j?['pd','Loading…']:j.wait?['pd','Collecting data']:j.tier=='High'?['hi','High risk · '+j.score+(j.early?' (early)':'')]:j.tier=='Medium'?['md','Medium · '+j.score+(j.early?' (early)':'')]:['lo','Low · '+j.score+(j.early?' (early)':'')];
 const DEC=d=>d=='approved'?['ok','Approved']:d=='rejected'?['rj','Rejected']:['pd','Pending'];
 function lastHour(log){if(!log||log.length<2)return null;const L=log[log.length-1],t=Date.parse(L[0])-3600000;let b=log[0];for(const a of log){if(Date.parse(a[0])<=t)b=a;else break}return L[1]-b[1]}
-function dayOf(s,td){if(s.status=='done')return'Tracking finished';const d=Math.floor((Date.now()-Date.parse(s.submitted))/86400000)+1;return'Day '+Math.min(d,td)+' of '+td}
+function dayOf(s,td){if(s.status=='done')return'Tracking finished';const d=Math.floor((Date.now()-Date.parse(s.posted||s.submitted))/86400000)+1;return'Day '+Math.min(d,td)+' of '+td}
 function drawList(){const td=LV.td||30,f=LV.filter;document.querySelectorAll('#lvf button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f==f));
  const subs=LV.subs.filter(s=>{const j=LV.judge[s.id];return f=='all'||(f=='review'&&s.decision=='pending')||(f=='flag'&&j&&!j.wait&&j.tier=='High')||s.decision==f});
  $('lvlist').innerHTML=subs.length?subs.map(s=>{const j=LV.judge[s.id],v=VERD(j),d=DEC(s.decision),lh=lastHour(LV.logs[s.id]);
@@ -801,7 +804,7 @@ function drawList(){const td=LV.td||30,f=LV.filter;document.querySelectorAll('#l
   <div><div class="nm">${esc(s.name||'Clipper')}${s.sim?' <span class="bdg simb" style="padding:1px 6px;font-size:10.5px">SIMULATED</span>':''}</div><div class="sb">${esc(s.link.replace(/^https?:\/\/(www\.)?/,'').slice(0,42))}<br>${dayOf(s,td)}${s.note?' · <span class="neg">'+esc(s.note.slice(0,80))+'</span>':''}</div></div>
   <div class="vw">${s.views!=null?nf(s.views):'—'}<small>${lh!=null?'+'+nf(lh)+' last hour':'views'}</small></div>
   <div class="bd"><span class="bdg ${v[0]}">${v[1]}</span>${(()=>{const a=LV.ver&&LV.ver[s.id];return a&&a.aiTier?`<span class="bdg aic ${a.aiTier=='High'?'hi':a.aiTier=='Medium'?'md':'lo'}">AI: ${esc(a.aiTier)}</span>`:''})()}<span class="bdg ${d[0]}">${d[1]}</span></div></button>`}).join(''):`<p class="lvempty">${LV.subs.length?'Nothing in this filter.':'No reels submitted yet.'}</p>`;
- document.querySelectorAll('.lvr').forEach(b=>b.onclick=()=>{LV.sel=b.dataset.id;LS.set('lv_sel',LV.sel);pillM='views';LV.rm=null;drawList();liveShow(true)})}
+ document.querySelectorAll('.lvr').forEach(b=>b.onclick=()=>{LV.sel=b.dataset.id;LS.set('lv_sel',LV.sel);pillM='views';LV.rm=null;LV.del=null;drawList();liveShow(true)})}
 async function getLog(s,max){if(s.sim)return genSim(s.p,s);const l=await api({action:'log',id:s.id,max});return l.log}
 function usagePct(u){if(!u||!u.value)return null;let o;try{o=typeof u.value=='string'?JSON.parse(u.value):u.value}catch(e){return null}let m=0,wait=0;
  (function walk(v){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v=='object'){['call_count','total_time','total_cputime'].forEach(k=>{if(typeof v[k]=='number')m=Math.max(m,v[k])});if(v.estimated_time_to_regain_access>0)wait=Math.max(wait,v.estimated_time_to_regain_access);Object.values(v).forEach(x=>{if(x&&typeof x=='object')walk(x)})}})(o);return{pct:m,wait,at:u.at}}
@@ -823,13 +826,14 @@ async function liveShow(fetchLog){const s=LV.subs.find(x=>x.id==LV.sel);LV.cur=s
  $('sname').value=s.name||'';$('sdate').value=s.posted?new Date(s.posted).toISOString().slice(0,10):'';$('slk').value=s.likes??'';$('scm').value=s.comments??'';$('ssh').value=s.shares??'';$('scpm').value=LV.rates[s.id]??'';
  rvSt={k:s.decision||'pending',d:s.decidedAt?new Date(s.decidedAt):new Date()};
  const head=`<b>${esc(s.name||'Clipper')}</b>${s.sim?' · <b>SIMULATED</b> (made from a preset, not Instagram data)':` · <a href="${esc(s.link)}" target="_blank" rel="noopener">open reel</a>`} · ${dayOf(s,LV.td||30)} · ${rw.length} view changes logged${s.lastCheck?' · last checked '+hm(new Date(s.lastCheck)):''}${s.decidedBy?' · '+esc(s.decision)+' by '+esc(s.decidedBy):''}
-  <div class="lvact"><button class="b alt" id="lvcsv">Download log (CSV)</button>${s.status=='tracking'?'<button class="b alt" id="lvstop">Stop tracking</button>':''}<button class="b alt" id="lvrm">${LV.rm==s.id?'Click again to remove':'Remove'}</button></div>`;
- if(rw.length<9){window._exr=null;$('res').innerHTML='';render();$('pnote').innerHTML=head+`<p>Collecting data: ${rw.length} view change${rw.length==1?'':'s'} so far. The graph below shows the raw readings now; the bot verdict and review card start at 9.</p>`;bindLv(s);return}
+  <div class="lvact"><button class="b alt" id="lvcsv">Download log (CSV)</button>${s.status=='tracking'?'<button class="b alt" id="lvstop">Stop tracking</button>':''}<button class="b alt" id="lvrm">${LV.rm==s.id?'Click again to remove':'Remove'}</button>${!s.sim&&(s.decision=='approved'||s.decision=='rejected')?`<button class="b alt" id="lvdel">${LV.del==s.id?'Click again: deletes the log for good':'Delete'}</button>`:''}</div>`;
+ const spanM=rw.length?rw[rw.length-1].t-rw[0].t:0;if(rw.length<9||spanM<LIVE_MIN_SPAN){window._exr=null;$('res').innerHTML='';render();$('pnote').innerHTML=head+`<p>Collecting data: ${rw.length} view change${rw.length==1?'':'s'} over ${dur2(spanM)} so far. The graph below shows the raw readings now; the bot verdict and review card start at 9 view changes and 6 hours of readings.</p>`;bindLv(s);return}
  doScore({rows:rw,key:s.id,base:rw[0].v>0,series:serOf(log),step:false});$('pnote').innerHTML=head+'<br>'+$('pnote').innerHTML;bindLv(s)}
 function bindLv(s){if(s.sim){const c0=$('lvcsv');if(c0)c0.onclick=()=>dl('time,views,likes,comments,shares,saves,reach\n'+(LV.logs[s.id]||[]).map(a=>a.map(x=>x==null?'':x).join(',')).join('\n'),'simulated_'+s.id+'.csv','text/csv');const st0=$('lvstop');if(st0)st0.remove();$('lvrm').onclick=()=>{if(LV.rm!=s.id){LV.rm=s.id;liveShow(false);return}simSave(simList().filter(x=>x.id!=s.id));LV.rm=null;LV.sel=null;liveRefresh(true)};return}
 const c=$('lvcsv');if(c)c.onclick=()=>dl('time,views,likes,comments,shares,saves,reach\n'+(LV.logs[s.id]||[]).map(a=>a.map(x=>x==null?'':x).join(',')).join('\n'),'reel_'+s.id+'.csv','text/csv');
  const st=$('lvstop');if(st)st.onclick=()=>api({action:'stop',id:s.id}).then(()=>liveRefresh(true)).catch(e=>alertMsg(e));
- $('lvrm').onclick=()=>{if(LV.rm!=s.id){LV.rm=s.id;liveShow(false);return}api({action:'remove',id:s.id}).then(()=>{LV.rm=null;LV.sel=null;liveRefresh(true)}).catch(e=>alertMsg(e))}}
+ $('lvrm').onclick=()=>{if(LV.rm!=s.id){LV.rm=s.id;liveShow(false);return}api({action:'remove',id:s.id}).then(()=>{LV.rm=null;LV.sel=null;liveRefresh(true)}).catch(e=>alertMsg(e))}
+ const dlb=$('lvdel');if(dlb)dlb.onclick=()=>{if(LV.del!=s.id){LV.del=s.id;liveShow(false);return}api({action:'delete',id:s.id}).then(()=>{LV.del=null;LV.sel=null;delete LV.logs[s.id];liveRefresh(true)}).catch(e=>{LV.del=null;alertMsg(e)})}}
 function alertMsg(e){$('lvst').innerHTML='<span class="neg">'+esc(e.message||e)+'</span>'}
 function liveDecide(k){const s=LV.cur;if(!s)return;rvSt={k,d:new Date()};renderReview();if(s.sim){simSave(simList().map(x=>x.id==s.id?{...x,decision:k,decidedAt:new Date().toISOString(),decidedBy:LV.by||''}:x));s.decision=k;s.decidedAt=new Date().toISOString();drawList();return}
  api({action:'decide',id:s.id,d:k,by:LV.by||''}).then(j=>{Object.assign(s,j.sub);drawList()}).catch(e=>{alertMsg(e);rvSt={k:s.decision,d:new Date()};renderReview()})}
@@ -866,6 +870,10 @@ $('lvsub').onclick=async()=>{const link=$('lvlink').value.trim();if(!/instagram\
   $('lvmsg').textContent='Tracking started. First reading: '+(j.sub.views!=null?nf(j.sub.views)+' views':'pending')+'.';$('lvlink').value='';LV.sel=j.sub.id;LS.set('lv_sel',LV.sel);await liveRefresh(true)}
  catch(e){$('lvmsg').innerHTML='<span class="neg">'+esc(e.message)+'</span>'}finally{$('lvsub').disabled=false}};
 document.querySelectorAll('#lvf button').forEach(b=>b.onclick=()=>{LV.filter=b.dataset.f;drawList()});
+// delete every finished reel (decided and done tracking, or removed) to free Sheet space; two clicks
+$('lvpurge').onclick=()=>{const b=$('lvpurge'),n=LV.subs.filter(s=>!s.sim&&s.status=='done'&&(s.decision=='approved'||s.decision=='rejected')).length;
+ if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Click again: delete '+n+' finished reel'+(n==1?'':'s')+' (plus removed ones) for good';setTimeout(()=>{delete b.dataset.arm;b.textContent='Delete finished reels'},8000);return}
+ delete b.dataset.arm;b.textContent='Delete finished reels';api({action:'purge'}).then(async j=>{LV.sel=null;await liveRefresh(false);$('lvst').textContent='Deleted '+j.deleted.length+' finished reel'+(j.deleted.length==1?'':'s')+'. '+$('lvst').textContent}).catch(e=>alertMsg(e))};
 $('scpm').addEventListener('input',()=>{if(cur==7&&LV.sel){const v=$('scpm').value.trim();if(v==='')delete LV.rates[LV.sel];else LV.rates[LV.sel]=+v;LS.set('lv_rates',JSON.stringify(LV.rates))}});
 setInterval(()=>{if(cur==7&&(LV.url||simList().length)&&!document.hidden)liveRefresh(false)},60000);
 /* ---------- simulated reels (demo data from the presets, same log format as the tracker) ---------- */
