@@ -88,6 +88,11 @@ img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 .trok{color:var(--ok);font-weight:600}.trno{color:var(--hi);font-weight:600}
 /* CR submission review card */
 .crx,.crf{display:none}
+.elogs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}.elogs b{display:block;font-size:13px;margin-bottom:4px}.elogs textarea{min-height:120px}@media(max-width:640px){.elogs{grid-template-columns:1fr}}
+.pbar{display:none;padding:2px 8px 10px;border-bottom:1px solid #23242a;margin-bottom:10px}.pbar.on{display:block}.pbar .pills{margin-top:2px}.pbar .pill{cursor:pointer}
+.pbar .rvm{margin-top:10px}.crc.reg .pbar{border-color:var(--line)}
+.crc.reg .pbar .pill,.crc.reg .pbar .rvm div{background:var(--bg);border-color:var(--line);color:var(--ink)}.crc.reg .pbar .rvm b{color:var(--ink)}.crc.reg .pbar .pill.on .lb{color:var(--ink)}
+.crc.reg .pbar .bot.hi{color:#8a1d29}.crc.reg .pbar .bot.md{color:#7a4510}.crc.reg .pbar .bot.lo{color:#0f5c43}
 .crc.rv{background:#111216;border:1px solid #23242a}
 .crc.rv .crx,.crc.rv .crf{display:block}.crc.rv .rd{display:none}.crc.rv #t1{color:#8d8f97;font-weight:400;font-size:12.5px}
 .crx{padding:2px 8px 12px;border-bottom:1px solid #23242a;margin-bottom:10px}
@@ -143,13 +148,21 @@ img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 <div class="ctl">
 <label>Scans<input id="n" type="number" min="10" max="1500"></label>
 <label>Interval (minutes)<input id="m" type="number" min="5" max="720"></label>
-<label>Total views<select id="tot"><option value="5000">5,000</option><option value="10000">10,000</option></select></label>
-<label>Growth window<select id="win"><option value="0">Whole run</option><option value="720">12 hours</option><option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option><option value="21600">15 days</option></select></label>
+<label>Total views<input id="tot" type="number" min="100" max="100000000" step="100"></label>
+<label>Growth window<select id="win"><option value="0">Whole run</option><option value="720">12 hours</option><option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option><option value="14400">10 days</option><option value="21600">15 days</option><option value="43200">30 days</option></select></label>
 <label>Scan noise (%)<input id="noise" type="number" min="0" max="30"></label>
 <label>First scan at<input id="start" type="datetime-local" value="2026-10-03T01:38"></label>
+<label>Min views per scan<input id="minv" type="number" min="0" step="1" placeholder="0 = off"></label>
+</div>
+<h2 style="margin-top:12px">Engagement</h2>
+<div class="ctl">
+<label>Likes (% of views)<input id="elr" type="number" min="0" max="100" step="0.1"></label>
+<label>Comments (% of views)<input id="ecr" type="number" min="0" max="100" step="0.05" placeholder="0 = none"></label>
+<label>Shares (% of views)<input id="esr" type="number" min="0" max="100" step="0.05" placeholder="0 = none"></label>
+<label>How likes move<select id="ebeh"><option value="organic">Organic (likes trail views)</option><option value="lock">In step (fixed share of every scan)</option><option value="out">Out of step (likes stop, views keep coming)</option></select></label>
 </div>
 <div class="btns"><button class="b" id="run">Run scanner</button><button class="b alt" id="inst">Show all scans</button><button class="b alt" id="csv">Download CSV</button><span id="status"></span></div>
-<small>Choosing a growth window sets the run to the window plus 25% plateau. Views are flat after the window ends.</small>
+<small>Choosing a growth window sets the run to the window plus 25% plateau. Views are flat after the window ends. Min views per scan lifts every scan inside the growth window to at least that number and takes the difference from the bigger scans, so the total stays the same. It also fills flat steps, which changes shapes like the staircase. Likes, comments and shares are running totals; the bot check judges views against them with the same radar as Live reels.</small>
 </div>
 <div class="panel" id="lp" style="display:none">
 <details id="lvc"><summary>Tracker connection</summary>
@@ -176,6 +189,9 @@ img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 <h2 class="tin">Test a clipper’s graph</h2>
 <small class="tin">Paste the scan log from your tracker. Both layouts work: one scan per line (<code>12, 148, Nov 20, 08:34 AM</code>), or your tracker’s block layout with scan number, time, <code>+views</code> and <code>=total</code> on separate lines. Times without AM/PM are read in time order.</small>
 <textarea class="tin" id="paste" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+500&#10;=500&#10;2&#10;Nov 20, 1:24&#10;+120&#10;=620"></textarea>
+<h2 class="tin" style="margin-top:12px">Likes, comments and shares logs</h2>
+<small class="tin">Same layouts as the views log: scan number, time, <code>+added</code> and <code>=total</code>. A loss is written <code>-16</code>, or shows as a lower <code>=total</code> (140 then 124). A line without a time takes the time of the views scan with the same number. Leave a box empty if there is no log. Comments and shares can be all zero.</small>
+<div class="elogs tin"><div><b>Likes log</b><textarea id="plk" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+40&#10;=40&#10;2&#10;Nov 20, 1:24&#10;+12&#10;=52"></textarea></div><div><b>Comments log</b><textarea id="pcm" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+1&#10;=1"></textarea></div><div><b>Shares log</b><textarea id="psh" spellcheck="false" placeholder="1&#10;Nov 20, 1:00&#10;+5&#10;=5"></textarea></div></div>
 <div class="ctl" style="margin-top:10px">
 <label>Compare head to head with<select id="tgt"></select></label>
 <label class="ck tin"><span><input type="checkbox" id="base"> Scan 1 is the starting count</span><small>Views that existed before tracking began. Ticked automatically when scan 1 is much bigger than the rest.</small></label>
@@ -205,13 +221,13 @@ img.av{object-fit:cover;border-radius:10px;width:40px;height:52px}
 <div class="tw" style="margin-top:8px"><table><thead><tr><th>Case</th><th>CR verdict</th><th class="n">Radar</th><th></th><th>Radar's main reason</th><th></th></tr></thead><tbody id="trtb"></tbody></table></div>
 <details style="margin-top:10px"><summary>Current settings (paste into radar.gs)</summary><small>Copy this into Script properties as <code>RADAR_SETTINGS</code> so the hourly server check uses the same tuned settings.</small><textarea id="trset" readonly spellcheck="false" style="min-height:90px;margin-top:6px"></textarea><div class="btns"><button class="b alt" id="trcopy">Copy settings</button></div></details>
 </details></div>
-<div class="crc"><div class="crx" id="crx"></div><div class="crh"><span id="t1">Cumulative views</span><div class="hctl">
+<div class="crc"><div class="crx" id="crx"></div><div class="pbar" id="pbar"></div><div class="crh"><span id="t1">Cumulative views</span><div class="hctl">
 <div class="seg" role="group" aria-label="Graph style"><button data-pov="cr" title="Content Rewards Mod POV">CR Mod POV</button><button data-pov="reg" title="Regular graph">Regular</button></div>
 <div class="seg" role="group" aria-label="What to plot"><button data-met="cum">Cumulative</button><button data-met="per">Per scan</button><button data-met="rate">Per hour</button><button data-met="gap" class="gapb">Gap</button></div>
 <button class="xb" id="cmpb" title="Overlay the selected preset" hidden>Compare</button><button class="xb" id="saveb" title="Save this graph to compare later" hidden>Save graph</button><button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div>
 <div class="rd" id="rd"></div><canvas id="c1" class="cc1"></canvas><div class="leg" id="leg"></div><div class="crf" id="crf"></div></div>
 <div class="crc" id="b2"><div class="crh"><span id="t2">Views added per scan</span><div class="hctl"><button class="xb" data-exp title="Expanded view" aria-label="Expanded view">⤢</button></div></div><canvas id="c2" class="cc2"></canvas></div>
-<div class="panel" id="p3"><h2>Scan log</h2><div class="tw"><table><thead><tr><th class="n">SCANS</th><th class="n">views add recorded</th><th>time captured</th><th class="n">cumulative views</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="panel" id="p3"><h2>Scan log</h2><div class="tw"><table><thead><tr><th class="n">SCANS</th><th class="n">views add recorded</th><th>time captured</th><th class="n">cumulative views</th><th class="n">likes</th><th class="n">comments</th><th class="n">shares</th></tr></thead><tbody id="tb"></tbody></table></div>
 <small>Synthetic practice data from a simulator. Not real campaign activity; don’t use it as evidence.</small></div>
 </main>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Expanded graph"><div class="crc">
@@ -249,25 +265,61 @@ function sim(g,c,t0){const{n,m,tot,noise,win}=c,p=P[g],fin=p[12],W=win?Math.min(
  const r=prng(g*7919+n*31+m);if(noise>0)raw=raw.map(v=>v>0?v*Math.max(0,1+noise/100*gauss(r)):0);
  const s=mean(raw)*n;raw=raw.map(v=>v*tot/s);const fl=raw.map(Math.floor);let rem=tot-fl.reduce((a,b)=>a+b,0);
  raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,rem).forEach(x=>fl[x[1]]++);
- let cu=0;return fl.map((v,i)=>{cu+=v;return{i:i+1,v,c:cu,t:new Date(t0+i*m*60000)}})}
+ // minimum views per scan during growth: lift low scans to the floor and take the difference from the scans above it, so the total stays the same
+ let floorNote=null;const mv0=Math.max(0,Math.floor(c.minV||0));
+ if(mv0>0){const nG=fl.filter((_,i)=>i*m<W).length,mv=Math.min(mv0,Math.floor(tot/nG));if(mv<mv0)floorNote='Minimum lowered to '+mv+' views per scan: '+nG+' growth scans × '+mv0+' is more than the '+tot+' total.';
+  const inG=i=>i*m<W;let need=0;fl.forEach((v,i)=>{if(inG(i)&&v<mv){need+=mv-v;fl[i]=mv}});
+  const ab=fl.map((v,i)=>Math.max(0,v-(inG(i)?mv:0))),sa=ab.reduce((a,b)=>a+b,0);
+  if(sa>0){need=Math.min(need,sa);const sh=ab.map(a=>need*a/sa),tk=sh.map(Math.floor);let left=need-tk.reduce((a,b)=>a+b,0);
+   sh.map((x,i)=>[x-tk[i],i]).sort((a,b)=>b[0]-a[0]).forEach(x=>{if(left>0&&tk[x[1]]<ab[x[1]]){tk[x[1]]++;left--}});tk.forEach((x,i)=>fl[i]-=x)}}
+ let cu=0;const out=fl.map((v,i)=>{cu+=v;return{i:i+1,v,c:cu,t:new Date(t0+i*m*60000)}});out.floorNote=floorNote;return out}
+/* Likes, comments and shares for simulated scans (running totals). e = {lr, cr, sr: % of views; beh: 'organic' | 'lock' | 'out'}.
+   organic: follows views about 1.5 h late, uneven from scan to scan, early viewers engage a little more.
+   lock:    a fixed share of every scan's views (how bought engagement packages behave).
+   out:     engagement arrives early, then stops while views keep coming (bought views on top of a small real audience). */
+function simEng(rows,e,seed){const n=rows.length,out={lk:[],cm:[],sh:[]};if(!n)return out;const V=rows[n-1].c||1,r=prng(seed||7),beh=e.beh||'organic';
+ const t=rows.map(q=>+q.t/60000),T0=t[0]-(n>1?t[1]-t[0]:15),span=Math.max(1,t[n-1]-T0);
+ [['lk',e.lr],['cm',e.cr],['sh',e.sr]].forEach(([k,pc])=>{const rate=Math.max(0,+pc||0)/100,a=out[k];if(!rate){rows.forEach(()=>a.push(0));return}
+  if(beh=='lock'){rows.forEach(q=>a.push(Math.round(rate*q.c)));return}
+  if(beh=='out'){const early=.3*V;let L=0,pt=T0;rows.forEach((q,i)=>{const tgt=rate*V*Math.min(1,q.c/early),k2=1-Math.exp(-(t[i]-pt)/60);pt=t[i];L+=(tgt-L)*k2*(1+.15*gauss(r));L=Math.max(a.length?a[a.length-1]:0,L);a.push(Math.round(L))});return}
+  let L=0,pt=T0,want=0;rows.forEach((q,i)=>{const f=(t[i]-T0)/span,drift=1.18-.36*f,dt=t[i]-pt;pt=t[i];want=rate*q.c*drift;const k2=1-Math.exp(-dt/90);
+   L+=Math.max(0,(want-L)*k2*Math.max(0,1+.35*gauss(r)));a.push(Math.max(a.length?a[a.length-1]:0,L))});
+  const sc=a[n-1]>0?rate*V/a[n-1]:0;for(let i=0;i<n;i++)a[i]=Math.round(a[i]*sc)});
+ return out}
 /* Reads one-line logs ("12, 148, Nov 20, 08:34 AM", CSV) and block logs (scan no / time / +views / =total on separate lines).
+   Engagement (running totals): labelled lines in a block ("likes 120", "comments 3", "shares 9"), or extra columns named in a header line
+   ("scan, views added, likes, comments, shares, time"). A views column named total/cumulative is read as running totals.
    Times without AM/PM are read in order: each time takes the earliest reading that is not before the previous scan. */
 function parse(txt,yr){yr=yr||new Date().getFullYear();
  const recs=[];let cur={};const push=()=>{if(Object.keys(cur).length)recs.push(cur);cur={}},set=(k,v)=>{if(cur[k]!==undefined)push();cur[k]=v};
  const DT=/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?,?\s+(?:at\s+)?(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
  const ISO=/(\d{4})-(\d{1,2})-(\d{1,2})[T\s]+(\d{1,2}):(\d{2})/,DMY=/(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?(?:[Mm]\.?)?/;
- txt.split(/\r?\n/).forEach(line=>{let l=' '+line.replace(/["']/g,' ')+' ',dt=null,m;
+ let hdr=null,skipped=0;const EK={lk:/(?:\blikes?\b|❤️?|♥)\s*[:=]?\s*(\d[\d,]*)/gi,cm:/(?:\bcomments?\b|💬)\s*[:=]?\s*(\d[\d,]*)/gi,sh:/(?:\bshares?\b|↗|➦)\s*[:=]?\s*(\d[\d,]*)/gi};
+ txt.split(/\r?\n/).forEach(line=>{
+  // a header line names the columns, e.g. "scan, views added, likes, comments, shares, time captured"
+  if(/[a-z]/i.test(line)&&/view/i.test(line)&&!/\d/.test(line)){const cols=line.split(/[,;\t|]/).map(x=>x.trim().toLowerCase()).filter(Boolean),num=[];
+   cols.forEach(c=>{if(/time|date|captured|when/.test(c))return;if(/scan|#|no\b|number/.test(c)&&!/view/.test(c))num.push('i');else if(/view/.test(c))num.push(/total|cumul|running|=/.test(c)?'c':'v');else if(/like/.test(c))num.push('lk');else if(/comment/.test(c))num.push('cm');else if(/share/.test(c))num.push('sh');else num.push('x')});
+   hdr=num.some(k=>k=='lk'||k=='cm'||k=='sh'||k=='c')?num:null;return}
+  let l=' '+line.replace(/["']/g,' ')+' ',dt=null,m;
   if((m=DT.exec(l))){const mi=MO.findIndex(x=>x.toLowerCase()==m[1].slice(0,3).toLowerCase());if(mi>=0){dt={mo:mi,d:+m[2],y:m[3]?+m[3]:null,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}}
   if(!dt&&(m=ISO.exec(l))){dt={mo:+m[2]-1,d:+m[3],y:+m[1],h:+m[4],mi:+m[5],ap:null,h24:1};l=l.replace(m[0],' ')}
   if(!dt&&(m=DMY.exec(l))){let a=+m[1],b=+m[2];if(b>12)[a,b]=[b,a];const y=+m[3]<100?2000+ +m[3]:+m[3];dt={mo:b-1,d:a,y,h:+m[4],mi:+m[5],ap:m[6]?m[6].toLowerCase():null};l=l.replace(m[0],' ')}
+  const eg={};for(const k in EK){const mm=[...l.matchAll(EK[k])];if(mm.length){eg[k]=+mm[0][1].replace(/,/g,'');l=l.replace(EK[k],' ')}}
   const plus=[...l.matchAll(/\+\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/\+\s*\d[\d,]*/g,' ');
+  // "-16" (minus right before the number) = 16 lost since the last scan
+  [...l.matchAll(/(?:^|\s)[-−](\d[\d,]*)(?=\s)/g)].forEach(x=>plus.push(-x[1].replace(/,/g,'')));l=l.replace(/(?:^|\s)[-−]\d[\d,]*(?=\s)/g,' ');
   const eq=[...l.matchAll(/=\s*(\d[\d,]*)/g)].map(x=>+x[1].replace(/,/g,''));l=l.replace(/=\s*\d[\d,]*/g,' ');
+  // header-mapped one-line rows: numbers split on ", " / tab / ; (so "1,279" stays one number), else on any comma
+  if(hdr&&!plus.length&&!eq.length){const want=hdr.length;let f=l.split(/[;\t|]|,(?=\s)|\s{2,}/).map(x=>x.trim()).filter(x=>/^[-−]?\d[\d,]*$/.test(x));
+   if(f.length!=want)f=(l.match(/\d+/g)||[]);
+   if(f.length==want){if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();f.forEach((x,k)=>{const key=hdr[k];if(key!='x')cur[key]=+String(x).replace(/,/g,'').replace('−','-')});if(dt)cur.dt=dt;for(const k in eg)cur[k]=eg[k];return}
+   if(f.length){skipped++;return}}
   let ns=l.match(/\d+/g)||[];
   if(ns.length>=3&&ns.slice(2).every(s=>s.length==3)&&ns[1].length<=3)ns=[ns[0],ns.slice(1).join('')]; // "5, 1,279" -> 5 and 1279
-  if(!dt&&!plus.length&&!eq.length&&!ns.length)return;
+  if(!dt&&!plus.length&&!eq.length&&!ns.length){for(const k in eg)set(k,eg[k]);return}
   if(ns.length>=2){if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0];set('v',+ns[1])}
-  else if(ns.length==1){if(cur.i!==undefined&&cur.v===undefined&&cur.dt&&!plus.length)set('v',+ns[0]);else{if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0]}}
-  if(dt)set('dt',dt);if(plus.length)set('v',plus[0]);if(eq.length)set('c',eq[0])});
+  else if(ns.length==1){if(cur.i!==undefined&&cur.v===undefined&&cur.c===undefined&&cur.dt&&!plus.length)set('v',+ns[0]);else{if(cur.i!==undefined||cur.v!==undefined||cur.c!==undefined)push();cur.i=+ns[0]}}
+  if(dt)set('dt',dt);if(plus.length)set('v',plus[0]);if(eq.length)set('c',eq[0]);for(const k in eg)set(k,eg[k])});
  push();
  const rows=[],notes=[];let pc=0,bad=0,noAP=0,prev=null,yc=yr,lm=null,flip=0;
  recs.forEach(r=>{let v=r.v;if(v===undefined){if(r.c===undefined)return;v=r.c-pc}
@@ -279,10 +331,15 @@ function parse(txt,yr){yr=yr||new Date().getFullYear();
    const ts=hs.map(h=>day+h*60+d.mi);
    if(prev==null)t=ts[0];else{const fw=ts.filter(x=>x>=prev);t=fw.length?Math.min(...fw):Math.max(...ts)}
    if(hs.length>1&&t==ts[1])flip++;prev=t}
-  rows.push({i:r.i!==undefined?r.i:rows.length+1,v,t,c:r.c})});
+  rows.push({i:r.i!==undefined?r.i:rows.length+1,v,t,c:r.c,lk:r.lk,cm:r.cm,sh:r.sh})});
  if(noAP)notes.push('Times have no AM/PM, so they were read in order from the first scan as AM'+(flip?'; '+flip+' later scan'+(flip>1?'s were':' was')+' read as PM to keep time moving forward':'')+'.');
  if(bad)notes.push(bad+' scan'+(bad>1?'s have':' has')+' a running total (=) that does not match the views added (+). The + values were used.');
+ const dn=rows.filter(r=>r.v<0);if(dn.length)notes.push(dn.length+' scan'+(dn.length>1?'s show':' shows')+' the count going down (scan '+dn.slice(0,5).map(r=>r.i+': '+r.v).join(', ')+(dn.length>5?' …':'')+').');
  if(rows.some(r=>r.t===null)&&rows.some(r=>r.t!==null))notes.push('Some scans have no time, so all scans were treated as evenly spaced.');
+ if(skipped)notes.push(skipped+' line'+(skipped>1?'s do':' does')+' not match the header\'s columns and '+(skipped>1?'were':'was')+' skipped.');
+ // engagement is a running total; a scan without a reading keeps the last known value (never 0)
+ rows.hasEng=rows.some(r=>r.lk!=null||r.cm!=null||r.sh!=null);
+ if(rows.hasEng){let a={};rows.forEach(r=>{['lk','cm','sh'].forEach(k=>{if(r[k]!=null)a[k]=r[k];else if(a[k]!=null)r[k]=a[k]})});const ks=['lk','cm','sh'].filter(k=>rows.some(r=>r[k]!=null));notes.push('Engagement read: '+ks.map(k=>({lk:'likes',cm:'comments',sh:'shares'}[k])).join(', ')+'.')}
  rows.notes=notes;return rows}
 // first scan looks like the starting count (views that existed before tracking began)
 function looksBase(rows){if(rows.length<4)return false;const m=med(rows.slice(1,Math.min(rows.length,21)).map(r=>r.v));return rows[0].v>2.5*m&&rows[0].v>0}
@@ -400,19 +457,32 @@ function radar(pts,opt){opt=opt||{};
   add('dry','Likes out of step with views',dryS,.85,(dryV==null?'':Math.round(dryV*100)+'% of views in hours without engagement')+(oosV==null?'':(dryV==null?'':' · ')+'curve gap '+Math.round(oosV*100)+'%')||'—','Likes did not rise with views: '+(dryV!=null?Math.round(dryV*100)+'% of the views came in hours where likes, comments and shares stayed far below this reel\'s normal rate':'')+(oosV!=null?(dryV!=null?', and ':'')+'the likes curve is '+Math.round(oosV*100)+'% away from the views curve':'')+'. Bought views add views only.');
   add('lock','Lockstep',best,.6,best>0?nm+' moves with views':'—','Likes, comments and shares follow views exactly and stop dead at the same moment, which is how bought engagement packages behave.');
   add('lag','Engagement fell behind',(lag-.3)/.4,.5,Math.round(lag*100)+'% of views after engagement stopped',Math.round(lag*100)+'% of the views arrived after likes, comments or shares had stopped growing.')}
+ // 7 counts going down: real reels only lose a few likes/comments (unlikes, deleted comments) and views do not go down.
+ //   A big fall below an earlier reading is how cheap bought engagement looks when Instagram removes it.
+ let drop=null;{const sr=opt.series||{},src={views:sr.views&&sr.views.length?sr.views:P,likes:sr.likes,comments:sr.comments,shares:sr.shares},
+   MIN={views:50,likes:10,comments:10,shares:5},F0={views:.005,likes:.03,comments:.05,shares:.03},F1={views:.03,likes:.1,comments:.15,shares:.1};let best=0;
+  for(const k in src){let pk=null;(src[k]||[]).filter(x=>x&&x.c!=null&&x.t!=null).sort((a,b)=>a.t-b.t).forEach(x=>{if(pk==null||x.c>pk){pk=x.c;return}
+   const d=pk-x.c;if(d<MIN[k]||pk<=0)return;const f=d/pk,st=clip((f-F0[k])/(F1[k]-F0[k]));if(st>best||(st==best&&st>0&&d>drop.d)){best=st;drop={k,from:pk,to:x.c,d,f,t:x.t}}})}
+  const nn=x=>Math.round(x).toLocaleString('en-US'),K=drop?drop.k[0].toUpperCase()+drop.k.slice(1):'';
+  add('drop','Counts dropped',best,.75,drop?drop.k+' '+nn(drop.from)+' → '+nn(drop.to)+' (−'+Math.round(drop.f*100)+'%)':'—',
+   drop?K+' dropped from '+nn(drop.from)+' to '+nn(drop.to)+' (−'+nn(drop.d)+', '+Math.round(drop.f*100)+'%). '+(drop.k=='views'?'View counts do not go down on a real reel.':'Real reels only lose a few to unlikes or deleted comments; a big fall usually means Instagram removed fake engagement.'):'')}
  const risk=1-S.reduce((p,x)=>p*(1-x.w*x.s),1),score=Math.round(risk*100),cut=opt.cut||{};
  const tier=score>=(cut.high||60)?'High':score>=(cut.med||35)?'Medium':'Low',early=span<2880;
- return{score,tier,early,span,signals:S,reasons:S.filter(x=>x.s*x.w>=.12).sort((a,b)=>b.s*b.w-a.s*a.w),G,Fv,C0,t99,
+ // plain reason line for the mod: likes out of step first (CR's own wording), then a drop, else the strongest signal
+ const rs=[],dS=S.find(x=>x.k=='dry'),oS=S.find(x=>x.k=='drop');
+ if(tier!='Low'){if(dS&&dS.s>=.5&&dS.s*dS.w>=.4)rs.push('Likes out of step with views');if(oS&&oS.s>=.5&&drop)rs.push(drop.k[0].toUpperCase()+drop.k.slice(1)+' dropped from '+Math.round(drop.from).toLocaleString('en-US')+' to '+Math.round(drop.to).toLocaleString('en-US'));
+  if(!rs.length){const top=S.filter(x=>x.s*x.w>=.12).sort((a,b)=>b.s*b.w-a.s*a.w)[0];if(top)rs.push(RPH[top.k]||top.label)}}
+ return{score,tier,early,span,signals:S,drop,reason:rs.join('; '),reasons:S.filter(x=>x.s*x.w>=.12).sort((a,b)=>b.s*b.w-a.s*a.w),G,Fv,C0,t99,
   msg:(()=>{const d=S.find(x=>x.k=='dry');if(tier=='High')return d&&d.s>=.5&&d.s*d.w>=.4?'Likes have been out of step with views, strong signs of bot activity':'Strong signs of bot activity on this clip';return'Worth a closer look before you decide'})(),main:(()=>{const top=S.filter(x=>x.s*x.w>=.12).sort((a,b)=>b.s*b.w-a.s*a.w)[0];return top?top.label:''})()}}
 // reason phrases in Content Rewards' style ("Likes have been out of step with views, strong signs of bot activity")
-const RPH={dry:'Likes have been out of step with views',stop:'Views stopped growing all at once',burst:'Views arrived in a sudden burst',burstq:'Views jumped suddenly after a quiet start',tail:'Views have not kept trickling in after the peak',batch:'Views have been arriving in batches',eng:'Very low engagement for the number of views',lock:'Likes, comments and shares have moved in lockstep with views',steady:'Engagement has stayed unnaturally constant',lag:'Views kept growing after engagement stopped'};
+const RPH={dry:'Likes have been out of step with views',stop:'Views stopped growing all at once',burst:'Views arrived in a sudden burst',burstq:'Views jumped suddenly after a quiet start',tail:'Views have not kept trickling in after the peak',batch:'Views have been arriving in batches',eng:'Very low engagement for the number of views',lock:'Likes, comments and shares have moved in lockstep with views',steady:'Engagement has stayed unnaturally constant',lag:'Views kept growing after engagement stopped',drop:'Likes, comments, shares or views went down'};
 function dur2(m){return m<120?Math.round(m)+' min':m<2880?(m/60).toFixed(m<600?1:0)+' h':(m/1440).toFixed(1)+' days'}
 // custom presets: a saved graph becomes a 13-point shape (share of views at each twelfth of its growth time)
 function shapeOf(e){const out=[];for(let k=0;k<=12;k++)out.push(Math.round(10000*Math.min(1,e.at(k/12))));for(let k=1;k<=12;k++)out[k]=Math.max(out[k],out[k-1]);out[12]=Math.max(out[12],1);return out}
 function addPreset(name,p,prior){NM.push(name);P.push(p);PRIOR.push(prior);EP.push(epOf(p));PZ.push(pzOf(P.length-1));return P.length-1}
 /*ENDPURE*/
 const $=id=>document.getElementById(id),css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim(),col=g=>g<5?css('--c'+(g+1)):['#0ea5e9','#e11d48','#65a30d','#ca8a04','#7c3aed','#db2777','#0891b2','#ea580c'][(g-5)%8];
-const S=[[46,25],[48,26],[56,29],[50,27],[52,28]].map(a=>({n:a[0],m:a[1],tot:10000,noise:8,win:0}));
+const S=[[46,25],[48,26],[56,29],[50,27],[52,28]].map(a=>({n:a[0],m:a[1],tot:10000,noise:8,win:0,minV:0,lr:6,cr:0.4,sr:0.8,beh:'organic'}));
 let cur=0,timer=null,shown=0,rows=[],sel=[],pov='cr',met='cum',hov=null,ovOpen=false,M=null,tgt=1,lastTxt=null,TW={mode:'keep',m:20,fmt:'block',drop:false};
 const t0=()=>new Date($('start').value).getTime();
 const CPK='custom_presets',cpGet=()=>{try{return JSON.parse(localStorage.getItem(CPK)||'[]')}catch(e){return[]}};cpGet().forEach(c=>{if(Array.isArray(c.p)&&c.p.length==13)addPreset(c.name,c.p,c.prior)});
@@ -495,7 +565,9 @@ const prL=g=>P[g].map((y,k)=>[k/12,y/P[g][12]]);
 const crStep=span=>span<=6*1440?60:span<=12*1440?180:1440;
 function crThinPts(P){if(pov!='cr'||P.length<3)return P;const x0=P[0].t,xe=P[P.length-1].t,st=crStep(xe-x0),out=[];let j=0,last=P[0];for(let t=x0;;t+=st){const tt=Math.min(t,xe);while(j<P.length&&P[j].t<=tt){last=P[j];j++}out.push({...last,t:tt});if(tt>=xe)break}return out}
 const ttl=(t,span)=>{const d=new Date(t*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():MO[d.getMonth()]+' '+d.getDate()+', '+hm(d)};
-function build(){const cr=pov=='cr',e=cur>=6?window._exr:null;let mt=met;if(cur==7&&LV.cur&&(!e||pillM!='views'||met=='rate')){const mm=buildMetric();if(mm)return mm}if(mt=='gap'&&!e)mt='cum';
+function build(){const cr=pov=='cr',e=cur>=6?window._exr:null;let mt=met;if(cur==7&&LV.cur&&(!e||pillM!='views'||met=='rate')){const mm=buildMetric();if(mm)return mm}
+ if(cur==6&&e&&pillM!='views'&&EM[pillM])return relab(buildClip(EM[pillM],mt),pillM);
+ if(pillM!='views'&&((cur==6&&e&&window._tlog)||(cur<5&&window._plog))){const mm=buildMetric();if(mm)return mm}if(mt=='gap'&&!e)mt='cum';
  if(cur<5){const s=S[cur],n=rows.length,base=rows[0].t/60000-s.m,xmax=rows[n-1].t/60000,tot=rows[n-1].c,span=xmax-base,mc=cr?CRL:col(cur),hr=s.m/60;
   const sc=rows.slice(0,shown).map((q,i)=>({x0:i?rows[i-1].t/60000:base,x1:q.t/60000,v:q.v,r:q.v/hr,c:q.c,txt:`Scan ${q.i} of ${n} · ${fmt(q.t)} · +${nf(q.v)} · ${nf(q.c)} views · ${nf(q.v/hr)} per hour`}));
   const pl=q=>{const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():hm(d)},ax={xk:'time',xmin:base,xmax,scans:sc,pl};
@@ -541,7 +613,13 @@ function buildClip(e,mt){const cr=pov=='cr',g=tgt,T=e.Tg,O=e.O,G=e.tot,B=e.B,hT=
 let HK=null;function paintAll(){if(!M)return;HK=M.main.hk||null;draw($('c1'),M.main,false,true);$('b2').style.display=M.sub?'':'none';if(M.sub)draw($('c2'),M.sub,false,false);
  if(ovOpen){draw($('oc1'),M.main,true,true);$('ob2').style.display=M.sub?'':'none';if(M.sub)draw($('oc2'),M.sub,true,false)}
  const sc=M.main.scans||[],i=hov!=null&&hov<sc.length?hov:(pov=='cr'&&sc.length?sc.length-1:null),t=i!=null?sc[i].txt:'';$('rd').textContent=t;$('ord').textContent=t}
-let rvSt={k:'pending',d:null},pillM='views',showCmp=false,SER=null;
+let rvSt={k:'pending',d:null},pillM='views',showCmp=false,SER=null,EM={};
+const tMet=()=>cur==6&&!!(window._tlog||Object.keys(EM).length);
+// relabel a views graph for likes / comments / shares
+const swU=(s,u)=>typeof s=='string'?s.replace(/Views/g,u[0].toUpperCase()+u.slice(1)).replace(/views/g,u):s;
+function relab(o,u){o.title=swU(o.title,u);o.t2=swU(o.t2,u);if(o.leg)o.leg=o.leg.map(l=>[l[0],swU(l[1],u)]);const cl=(MET[u]||{}).cl;[o.main,o.sub].forEach(m=>{if(!m)return;if(cl&&m.series)m.series=m.series.map(s=>s.main||s.t=='bars'?{...s,color:cl}:s);if(m.tt){const f=m.tt;m.tt=q=>{const r=f(q);return{...r,rows:r.rows.map(x=>[x[0],swU(x[1],u),x[2]])}}}(m.scans||[]).forEach(q=>{if(q.txt&&q._u!==u){q.txt=swU(q.txt,u);q._u=u}})});return o}
+// head to head for the metric on screen
+function updH2h(){const el=$('h2hs');if(!el||cur!=6||!window._exr)return;const k=pillM,E=k!='views'&&EM[k]?EM[k]:window._exr,u=E===window._exr?'views':k;const html=(u=='views'?'':'<p class="bdgx"><b>Comparing '+u+'</b> against the preset shape. Switch the pills above the graph to compare views, likes, comments or shares.</p>')+swU(h2h(E,compare(E,tgt)),u);if(el._h!==html){el.innerHTML=html;el._h=html}}
 const num=id=>{const v=$(id).value.trim();return v===''?null:Math.max(0,+v||0)};
 function sub(){return{name:$('sname').value.trim(),date:$('sdate').value,l:num('slk'),c:num('scm'),s:num('ssh'),cpm:num('scpm'),cap:num('scap')}}
 const ck=v=>v==null?'—':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
@@ -563,22 +641,23 @@ function renderReview(){const e=window._exr,rd=window._rad,on=pov=='cr'&&cur>=6&
  const link=cur==7&&LV.cur?LV.cur.link:'',pay=s.cpm==null?null:Math.min(V/1000*s.cpm,s.cap==null?Infinity:s.cap);
  $('crx').innerHTML=`<div class="rvh"><div class="rvw">${cur==7&&LV.sel&&LV.cur&&LV.cur.thumb?`<img class="av" src="${LV.cur.thumb.replace(/"/g,'')}" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML='<div class=&quot;av&quot;></div>'">`:'<div class="av"></div>'}<div><div class="rvn">${(s.name||'Clipper').replace(/[<>&]/g,'')}${cur==7&&LV.cur&&LV.cur.sim?' <span class="bdg simb" style="padding:2px 7px;font-size:11px">SIMULATED</span>':''}</div><div class="rvs">${pd?dd(pd)+' ·':''}<button class="idc" id="rvId" title="Copy ID">${id} ⧉</button></div></div></div>
  <div class="rvb">${badge}${st}${btn}</div></div>${cur==7&&LV.cur&&LV.cur.note?`<div class="rvnote">⚠ ${esc(LV.cur.note)}</div>`:''}
- <div class="pills">${[['views',ICO.eye,'Views',ck(V)],['likes',ICO.heart,'Likes',ck(s.l)],['comments',ICO.cmt,'Comments',ck(s.c)],['shares',ICO.shr,'Shares',ck(s.s)]].concat(cur==7?[['eng',ICO.er,'Engagement',er==null?'—':(er*100).toFixed(1)+'%']]:[]).map(p=>`<button class="pill${pillM==p[0]?' on':''}" data-m="${p[0]}" title="${p[2]}${cur==7?'':' (graph over time needs Live reels)'}" style="cursor:${cur==7?'pointer':'default'}">${p[1]}<span class="lb">${p[2]}</span><b>${p[3]}</b></button>`).join('')}</div>`;
+ <div class="pills">${[['views',ICO.eye,'Views',ck(V)],['likes',ICO.heart,'Likes',ck(s.l)],['comments',ICO.cmt,'Comments',ck(s.c)],['shares',ICO.shr,'Shares',ck(s.s)]]
+ .concat(cur==7||tMet()?[['eng',ICO.er,'Engagement',er==null?'—':(er*100).toFixed(1)+'%']]:[]).map(p=>`<button class="pill${pillM==p[0]?' on':''}" data-m="${p[0]}" title="${p[2]}${cur==7||tMet()?'':' (paste a likes, comments or shares log to graph it)'}" style="cursor:${cur==7||tMet()?'pointer':'default'}">${p[1]}<span class="lb">${p[2]}</span><b>${p[3]}</b></button>`).join('')}</div>`;
  $('crf').innerHTML=`<div class="rvm"><div>Engagement<b>${er==null?'—':(er<0.1?(er*100).toFixed(1):Math.round(er*100))+'%'}</b></div><div>Payout<b>${pay==null?'—':'$'+pay.toFixed(2)}</b></div></div>
- <div class="bot ${rk}"><span>● <b>Live bot detection</b> · <span class="ms" id="rvO">${rd.msg}</span> <span class="tr">· ${rd.tier} risk ${rd.score}${rd.main?' · main signal: '+rd.main:''}${rd.early?' · early read':''}</span></span>${link?`<a class="op" href="${link.replace(/"/g,'')}" target="_blank" rel="noopener">Open post</a>`:''}</div>${(()=>{const a=cur==7&&LV.cur&&LV.ver&&LV.ver[LV.cur.id];if(!a)return'';const ai=a.aiTier?`<div style="margin-top:6px"><b>AI second opinion: ${esc(a.aiTier)}${a.aiScore!=null?' · '+a.aiScore:''}</b>${a.aiConfidence?' <span class="t">('+esc(a.aiConfidence)+' confidence)</span>':''}${a.aiAt?' <span class="t">· '+fmtS(new Date(a.aiAt))+'</span>':''}<ul>${a.aiReasons.split('\n').filter(Boolean).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul></div>`:'';return`<div class="aibox"><b>Server check (hourly)</b> <span class="t">· ${a.judgedAt?fmtS(new Date(a.judgedAt)):''}</span> · rule checker: <b>${esc(a.tier)}${a.score!=null?' · '+a.score:''}</b>${ai}</div>`})()}`;
+ <div class="bot ${rk}"><span>● <b>Live bot detection</b> · <span class="ms" id="rvO">${rd.msg}</span>${rd.reason&&rd.tier!='Low'?' · Reason: <b>'+rd.reason+'</b>':''} <span class="tr">· ${rd.tier} risk ${rd.score}${rd.main?' · main signal: '+rd.main:''}${rd.early?' · early read':''}</span></span>${link?`<a class="op" href="${link.replace(/"/g,'')}" target="_blank" rel="noopener">Open post</a>`:''}</div>${(()=>{const a=cur==7&&LV.cur&&LV.ver&&LV.ver[LV.cur.id];if(!a)return'';const ai=a.aiTier?`<div style="margin-top:6px"><b>AI second opinion: ${esc(a.aiTier)}${a.aiScore!=null?' · '+a.aiScore:''}</b>${a.aiConfidence?' <span class="t">('+esc(a.aiConfidence)+' confidence)</span>':''}${a.aiAt?' <span class="t">· '+fmtS(new Date(a.aiAt))+'</span>':''}<ul>${a.aiReasons.split('\n').filter(Boolean).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul></div>`:'';return`<div class="aibox"><b>Server check (hourly)</b> <span class="t">· ${a.judgedAt?fmtS(new Date(a.judgedAt)):''}</span> · rule checker: <b>${esc(a.tier)}${a.score!=null?' · '+a.score:''}</b>${ai}</div>`})()}`;
  const A=$('rvA'),R=$('rvR');if(A)A.onclick=()=>{if(cur==7&&LV.sel)return liveDecide('approved');rvSt={k:'approved',d:new Date()};renderReview()};if(R)R.onclick=()=>{if(cur==7&&LV.sel)return liveDecide('rejected');rvSt={k:'rejected',d:new Date()};renderReview()};
- document.querySelectorAll('#crx .pill').forEach(b=>b.onclick=()=>{if(cur!=7)return;pillM=b.dataset.m;render()});$('rvId').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(id)};$('rvO').onclick=()=>{const f=$('why');if(f)f.scrollIntoView({behavior:'smooth',block:'center'})}}
+ document.querySelectorAll('#crx .pill').forEach(b=>b.onclick=()=>{if(cur!=7&&!tMet())return;pillM=b.dataset.m;render()});$('rvId').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(id)};$('rvO').onclick=()=>{const f=$('why');if(f)f.scrollIntoView({behavior:'smooth',block:'center'})}}
 function hook(c){const f=e=>{const m=c._m;if(!m||!m.sp.scans||!m.sp.scans.length)return;const r=c.getBoundingClientRect(),v=m.xmin+(e.clientX-r.left-m.L)/m.pw*m.xs,bars=m.sp.mode=='bars';
   let b=0,bd=1e18;m.sp.scans.forEach((q,i)=>{const d=Math.abs((bars?(q.x0+q.x1)/2:q.x1)-v);if(d<bd){bd=d;b=i}});if(hov!==b){hov=b;paintAll()}};
  c.addEventListener('pointermove',f);c.addEventListener('pointerdown',f);c.addEventListener('pointerleave',()=>{if(hov!==null){hov=null;paintAll()}})}
 ['c1','c2','oc1','oc2'].forEach(id=>hook($(id)));
 function show(mode){const p=mode=='preset';$('ctlpanel').style.display=p?'':'none';$('p3').style.display=p?'':'none';$('tp').style.display=mode=='test'||mode=='live'?'':'none';$('tp').classList.toggle('live',mode=='live');$('lp').style.display=mode=='live'?'':'none';$('trp').style.display=mode=='test'||mode=='live'?'':'none'}
 function render(){show(cur<5?'preset':cur==5?'all':cur==6?'test':'live');const gapOK=cur>=6&&!!window._exr;document.querySelectorAll('.gapb').forEach(b=>b.hidden=!gapOK);if(met=='gap'&&!gapOK){met='cum';sync()}
- M=build();renderReview();
+ M=build();renderReview();renderPbar();
  $('t1').textContent=$('ot1').textContent=pov=='cr'&&cur>=6&&window._exr&&!showCmp?M.title.replace(/^Clipper vs [^:]+: (.)/,(m,c)=>c.toUpperCase()):M.title;$('t2').textContent=$('ot2').textContent=M.t2||'';
  const lg=(M.leg||[]).map(l=>`<span><i style="background:${l[0]==-2?'#e6c35c':l[0]==-3?'#9a9ca3':l[0]<0?(pov=='cr'?CRL:css('--ink')):pcol(l[0])}"></i>${l[1]}</span>`).join('');$('leg').innerHTML=$('oleg').innerHTML=lg;
- paintAll();
- if(cur<5){$('tb').innerHTML=rows.slice(0,shown).map(q=>`<tr><td class="n">${q.i}</td><td class="n">${q.v}</td><td>${fmt(q.t)}</td><td class="n">${q.c.toLocaleString()}</td></tr>`).join('');const tw=document.querySelector('.tw');tw.scrollTop=tw.scrollHeight}}
+ paintAll();updH2h();
+ if(cur<5){$('tb').innerHTML=rows.slice(0,shown).map(q=>`<tr><td class="n">${q.i}</td><td class="n">${q.v}</td><td>${fmt(q.t)}</td><td class="n">${q.c.toLocaleString()}</td><td class="n">${nf(q.lk)}</td><td class="n">${nf(q.cm)}</td><td class="n">${nf(q.sh)}</td></tr>`).join('');const tw=document.querySelector('.tw');tw.scrollTop=tw.scrollHeight}}
 function sync(){document.querySelectorAll('.crc').forEach(e=>e.classList.toggle('reg',pov=='reg'));
  document.querySelectorAll('[data-pov]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pov==pov));document.querySelectorAll('[data-met]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.met==met))}
 document.querySelectorAll('[data-pov]').forEach(b=>b.onclick=()=>{pov=b.dataset.pov;sync();render()});
@@ -588,21 +667,33 @@ function closeOv(){ovOpen=false;$('ov').hidden=true;document.body.style.overflow
 document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=openOv);$('ox').onclick=closeOv;
 $('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeOv()});addEventListener('keydown',e=>{if(e.key=='Escape'&&ovOpen)closeOv()});
 /* ---------- simulator controls ---------- */
-function load(){const s=S[cur];$('n').value=s.n;$('m').value=s.m;$('tot').value=s.tot;$('noise').value=s.noise;$('win').value=s.win}
-function read(){const s=S[cur],cl=(v,a,b)=>Math.min(b,Math.max(a,+v||a));s.n=cl($('n').value,10,1500);s.m=cl($('m').value,5,720);s.tot=+$('tot').value;s.noise=cl($('noise').value,0,30);s.win=+$('win').value;load()}
-function prep(){clearInterval(timer);read();rows=sim(cur,S[cur],t0())}
-function info(){const s=S[cur];$('status').textContent=rows.length+' scans, '+s.m+' min apart, '+dur(rows.length*s.m)+(s.win&&s.win<rows.length*s.m?'; growth ends at '+dur(s.win)+', then plateau':'')}
+function load(){const s=S[cur];$('n').value=s.n;$('m').value=s.m;$('tot').value=s.tot;$('noise').value=s.noise;$('win').value=s.win;$('minv').value=s.minV||'';$('elr').value=s.lr;$('ecr').value=s.cr;$('esr').value=s.sr;$('ebeh').value=s.beh}
+function read(){const s=S[cur],cl=(v,a,b)=>Math.min(b,Math.max(a,+v||a));s.n=cl($('n').value,10,1500);s.m=cl($('m').value,5,720);s.tot=Math.round(cl($('tot').value,100,1e8));s.noise=cl($('noise').value,0,30);s.win=+$('win').value;s.minV=Math.floor(Math.max(0,+$('minv').value||0));
+ const pc=id=>{const v=$(id).value.trim();return v===''?0:Math.min(100,Math.max(0,+v||0))};s.lr=pc('elr');s.cr=pc('ecr');s.sr=pc('esr');s.beh=$('ebeh').value;load()}
+function prep(){clearInterval(timer);read();rows=sim(cur,S[cur],t0());const s=S[cur],E=simEng(rows,s,cur*13+1);rows.forEach((q,i)=>{q.lk=E.lk[i];q.cm=E.cm[i];q.sh=E.sh[i]});
+ const b=new Date(+rows[0].t-s.m*60000).toISOString();window._plog=[[b,0,0,0,0,null,null]].concat(rows.map(q=>[q.t.toISOString(),q.c,q.lk,q.cm,q.sh,null,null]));window._prad=null}
+// preset bot check: the same radar Live reels use, on views against likes, comments and shares up to the scan shown
+function presetJudge(){if(cur>=5||!window._plog)return null;const L=window._plog.slice(0,shown+1);if(L.length<6)return null;const l=L[L.length-1];
+ return radar(L.map(a=>({t:Date.parse(a[0])/60000,c:a[1]})),radOpt({eng:{l:l[2],c:l[3],s:l[4]},series:serOf(L),step:false}))}
+function renderPbar(){const el=$('pbar');if(cur>=5||!window._plog||!rows.length){el.classList.remove('on');el.innerHTML='';el._h='';return}el.classList.add('on');
+ const l=window._plog[Math.min(shown,window._plog.length-1)],V=l[1],er=V>0?(l[2]+l[3]+l[4])/V:null,R=presetJudge(),rk=!R||R.err?'':R.tier=='Low'?'lo':R.tier=='Medium'?'md':'hi';
+ const html=`<div class="pills">${[['views',ICO.eye,'Views',ck(V)],['likes',ICO.heart,'Likes',ck(l[2])],['comments',ICO.cmt,'Comments',ck(l[3])],['shares',ICO.shr,'Shares',ck(l[4])],['eng',ICO.er,'Engagement',er==null?'—':(er*100).toFixed(1)+'%']].map(p=>`<button class="pill${pillM==p[0]?' on':''}" data-m="${p[0]}" title="Show the ${p[2].toLowerCase()} graph">${p[1]}<span class="lb">${p[2]}</span><b>${p[3]}</b></button>`).join('')}</div>
+ <div class="rvm"><div>Engagement<b>${er==null?'—':(er*100).toFixed(1)+'%'}</b></div><div>Likes to views<b>${V>0?(l[2]/V*100).toFixed(1)+'%':'—'}</b></div></div>
+ ${!R||R.err?'<div class="bot lo"><span>● <b>Live bot detection</b> · needs at least 5 scans</span></div>':`<div class="bot ${rk}"><span>● <b>Live bot detection</b> · ${R.msg}${R.reason&&R.tier!='Low'?' · Reason: <b>'+R.reason+'</b>':''} <span class="tr">· ${R.tier} risk ${R.score}${R.main?' · main signal: '+R.main:''}${R.early?' · early read':''}${shown<rows.length?' · judged up to scan '+shown:''}</span></span></div>`}`;
+ // only replace when something changed, so a click that also blurs an edited field is not lost
+ if(el._h!==html){el.innerHTML=html;el._h=html;el.querySelectorAll('.pill').forEach(b=>b.onclick=()=>{pillM=b.dataset.m;render()})}}
+function info(){const s=S[cur];$('status').textContent=rows.length+' scans, '+s.m+' min apart, '+dur(rows.length*s.m)+(s.win&&s.win<rows.length*s.m?'; growth ends at '+dur(s.win)+', then plateau':'')+(rows.floorNote?'. '+rows.floorNote:'')}
 function instant(){prep();shown=rows.length;info();render()}
 function run(){prep();shown=0;hov=null;render();const step=Math.max(1,Math.ceil(rows.length/60));timer=setInterval(()=>{shown=Math.min(rows.length,shown+step);$('status').textContent='Scan '+shown+' of '+rows.length+' · '+fmt(rows[shown-1].t);render();if(shown>=rows.length){clearInterval(timer);info()}},70)}
-function tab(i){if(i!=7&&pillM=='eng')pillM='views';clearInterval(timer);const was=cur;cur=i;hov=null;[...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-selected',k==i));if(i<5){load();instant();return}
- if((was==7)!=(i==7)){$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;rvSt={k:'pending',d:null};pillM='views';['sname','sdate','slk','scm','ssh','scpm'].forEach(id=>$(id).value='')}
+function tab(i){const grp=k=>k<5?0:k;if(grp(i)!=grp(cur))pillM='views';clearInterval(timer);const was=cur;cur=i;hov=null;[...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-selected',k==i));if(i<5){load();instant();return}
+ if((was==7)!=(i==7)){$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;rvSt={k:'pending',d:null};pillM='views';['sname','sdate','slk','scm','ssh','scpm','plk','pcm','psh'].forEach(id=>$(id).value='');EM={}}
  render();if(i==7)liveRefresh(true)}
 [...NM.slice(0,5),'All presets','Test a clipper’s graph','Live reels'].forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('role','tab');b.onclick=()=>tab(i);$('tabs').appendChild(b)});
 $('win').onchange=()=>{const w=+$('win').value;if(w){let run=w*1.25,m=+$('m').value||25,n=Math.round(run/m);if(n>1500){m=Math.ceil(run/1500);n=Math.round(run/m)}$('m').value=m;$('n').value=Math.max(10,n)}instant()};
 $('run').onclick=run;$('inst').onclick=instant;
-$('csv').onclick=()=>{const t='SCANS,views add recorded,time captured\n'+rows.map(q=>[q.i,q.v,'"'+fmt(q.t)+'"'].join(',')).join('\n');dl(t,NM[cur].replace(/ /g,'_')+'_scans.csv','text/csv')};
+$('csv').onclick=()=>{const t='SCANS,views add recorded,likes,comments,shares,time captured\n'+rows.map(q=>[q.i,q.v,q.lk,q.cm,q.sh,'"'+fmt(q.t)+'"'].join(',')).join('\n');dl(t,NM[cur].replace(/ /g,'_')+'_scans.csv','text/csv')};
 function dl(t,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-['n','m','tot','noise','start'].forEach(id=>$(id).addEventListener('change',instant));
+['n','m','tot','noise','start','minv','elr','ecr','esr','ebeh'].forEach(id=>$(id).addEventListener('change',instant));
 /* ---------- clipper test: score, head to head, target log ---------- */
 const EX=`1\nNov 20, 1:00\n+500\n=500\n2\nNov 20, 1:24\n+120\n=620\n3\nNov 20, 1:38\n+181\n=801\n4\nNov 20, 1:53\n+150\n=951\n5\nNov 20, 2:31\n+328\n=1,279\n6\nNov 20, 3:05\n+164\n=1,443\n7\nNov 20, 3:29\n+156\n=1,599\n8\nNov 20, 3:43\n+149\n=1,748\n9\nNov 20, 3:59\n+196\n=1,944\n10\nNov 20, 4:34\n+312\n=2,256\n11\nNov 20, 5:13\n+230\n=2,486\n12\nNov 20, 5:30\n+160\n=2,646\n13\nNov 20, 5:54\n+133\n=2,779\n14\nNov 20, 6:15\n+204\n=2,983\n15\nNov 20, 6:34\n+208\n=3,191\n16\nNov 20, 6:55\n+299\n=3,490\n17\nNov 20, 7:17\n+137\n=3,627\n18\nNov 20, 7:32\n+188\n=3,815\n19\nNov 20, 7:58\n+273\n=4,088\n20\nNov 20, 8:21\n+187\n=4,275\n21\nNov 20, 8:42\n+203\n=4,478\n22\nNov 20, 9:03\n+147\n=4,625\n23\nNov 20, 9:29\n+350\n=4,975\n24\nNov 20, 9:51\n+151\n=5,126\n25\nNov 20, 10:06\n+141\n=5,267\n26\nNov 20, 10:37\n+431\n=5,698\n27\nNov 20, 10:56\n+100\n=5,798\n28\nNov 20, 11:19\n+317\n=6,115\n29\nNov 20, 11:53\n+281\n=6,396\n30\nNov 20, 12:07\n+112\n=6,508\n31\nNov 20, 12:22\n+211\n=6,719\n32\nNov 20, 12:46\n+317\n=7,036\n33\nNov 20, 1:07\n+158\n=7,194\n34\nNov 20, 1:20\n+123\n=7,317\n35\nNov 20, 1:38\n+250\n=7,567\n36\nNov 20, 1:55\n+167\n=7,734\n37\nNov 20, 2:10\n+175\n=7,909\n38\nNov 20, 2:31\n+291\n=8,200\n39\nNov 20, 2:55\n+271\n=8,471\n40\nNov 20, 3:13\n+215\n=8,686\n41\nNov 20, 3:30\n+244\n=8,930\n42\nNov 20, 3:47\n+264\n=9,194\n43\nNov 20, 4:17\n+353\n=9,547\n44\nNov 20, 4:36\n+140\n=9,687\n45\nNov 20, 4:57\n+313\n=10,000`;
 function presetUI(){$('chk').innerHTML='<span>Also draw:</span>'+NM.map((n,g)=>`<label><input type="checkbox" data-g="${g}"${sel[g]?' checked':''}><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col(g)}"></i>${esc(n)}${g>=5?' (yours)':''}</label>`).join('');
@@ -614,27 +705,42 @@ $('tgt').onchange=()=>{tgt=+$('tgt').value;window._exr?doScore({keep:1}):render(
 $('base').onchange=()=>{if(window._exr)doScore({keep:1})};
 ['slk','scm','ssh'].forEach(id=>$(id).addEventListener('change',()=>{if(window._exr)doScore({keep:1})}));['sname','sdate','scpm'].forEach(id=>$(id).addEventListener('input',renderReview));
 $('chk').onchange=e=>{sel[+e.target.dataset.g]=e.target.checked?1:0;render()};
-$('smp').onchange=()=>{const g=$('smp').value;if(g==='')return;SER=null;if(g=='ex')$('paste').value=EX;else{const r=sim(+g,S[+g],t0());$('paste').value='SCANS, views add recorded, time captured\n'+r.map(q=>[q.i,q.v,fmt(q.t)].join(', ')).join('\n')}$('smp').value='';doScore()};
-$('clr').onclick=()=>{rvSt={k:'pending',d:null};SER=null;window._rad=null;$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;hov=null;render()};
-function doScore(o){o=o||{};const txt=o.rows?null:$('paste').value,rw=o.rows||parse(txt),kk=o.rows?'live:'+o.key:txt,fresh=kk!==lastTxt;
+$('smp').onchange=()=>{const g=$('smp').value;if(g==='')return;SER=null;if(g=='ex')$('paste').value=EX;else{const r=sim(+g,S[+g],t0());const E=simEng(r,S[+g],+g*13+1),lg=a=>r.map((q,i)=>[q.i,'+'+(a[i]-(i?a[i-1]:0)),'='+a[i],fmt(q.t)].join(', ')).join('\n');$('paste').value='SCANS, views add recorded, time captured\n'+r.map(q=>[q.i,q.v,fmt(q.t)].join(', ')).join('\n');$('plk').value=lg(E.lk);$('pcm').value=lg(E.cm);$('psh').value=lg(E.sh)}
+ if(g=='ex')['plk','pcm','psh'].forEach(id=>$(id).value='');$('smp').value='';doScore()};
+$('clr').onclick=()=>{rvSt={k:'pending',d:null};SER=null;window._tlog=null;EM={};['plk','pcm','psh'].forEach(id=>$(id).value='');window._rad=null;$('paste').value='';$('res').innerHTML='';$('pnote').innerHTML='';window._exr=null;lastTxt=null;hov=null;render()};
+function doScore(o){o=o||{};const txt=o.rows?null:$('paste').value,rw=o.rows||parse(txt),kk=o.rows?'live:'+o.key:[txt,$('plk').value,$('pcm').value,$('psh').value].join('\u0001'),fresh=kk!==lastTxt;
  if(fresh&&!o.keep){if(!o.rows)rvSt={k:'pending',d:null};$('base').checked=o.base!=null?o.base:looksBase(rw);lastTxt=kk;const md=med(rw.slice(1).filter((r,i)=>r.t!=null&&rw[i].t!=null).map((r,i)=>r.t-rw[i].t));if(md>0)TW.m=Math.max(1,Math.round(md))}
  const sv=rw.reduce((s,r)=>s+r.v,0),hasT=rw.length&&rw.every(r=>r.t!==null);
- $('pnote').innerHTML=rw.length?`Read <b>${rw.length} scans</b>, <b>${nf(sv)} views</b>${hasT?' from '+fmtS(new Date(Math.min(...rw.map(r=>r.t))*60000))+' to '+fmtS(new Date(Math.max(...rw.map(r=>r.t))*60000)):', no times'}${$('base').checked?` · scan 1 (${nf(rw[0].v)} views) treated as the starting count, so growth is measured on the other ${nf(sv-rw[0].v)}`:''}.`+(rw.notes||[]).map(n=>'<br>'+n).join(''):'';
+ let engNote='';EM={};
+ if(!o.rows){window._tlog=null;const tAt={};rw.forEach(r=>{if(r.t!=null)tAt[r.i]=r.t});const ext={},NMk={likes:'Likes',comments:'Comments',shares:'Shares'};
+  // separate logs (boxes) first, else the columns/lines inside the views log
+  [['likes','plk',2,'lk'],['comments','pcm',3,'cm'],['shares','psh',4,'sh']].forEach(([k,id,col,ik])=>{const tx=$(id).value.trim();let r2=null,nt=[];
+   if(tx){const p2=parse(tx);nt=p2.notes||[];r2=p2.map(r=>({i:r.i,v:r.v,t:r.t!=null?r.t:tAt[r.i]!=null?tAt[r.i]:null}))}
+   else if(rw.hasEng&&rw.some(r=>r[ik]!=null)){let pv=0;r2=rw.filter(r=>r[ik]!=null).map(r=>{const v=r[ik]-pv;pv=r[ik];return{i:r.i,v,t:r.t}})}
+   if(!r2||!r2.length)return;let cu=0;r2.forEach(r=>{cu+=r.v;r.tot=cu});ext[k]={rows:r2,col};
+   const dn=r2.filter(r=>r.v<0);engNote+='<br>'+NMk[k]+': '+r2.length+' scans, total '+nf(cu)+(tx?'':' (from the views log)')+(dn.length?' · <b>went down '+dn.length+' time'+(dn.length>1?'s':'')+'</b> (scan '+dn.slice(0,4).map(r=>r.i+': '+r.v).join(', ')+')':'')+(r2.some(r=>r.t==null)?' · some scans have no time':'')+(nt.filter(x=>!/going down|AM\/PM/.test(x)).map(x=>' · '+x).join(''));
+   const sc=score(r2.map(r=>({i:r.i,v:r.v,t:r.t})),{base:$('base').checked});if(!sc.err){sc.unit=k;EM[k]=sc}});
+  if(Object.keys(ext).length&&hasT&&rw.length>=2){let cu=0;const L=rw.map(r=>{cu+=r.v;return[r.t,cu,null,null,null]});
+   Object.values(ext).forEach(x=>x.rows.forEach(r=>{if(r.t==null)return;const a=[r.t,null,null,null,null];a[x.col]=r.tot;L.push(a)}));
+   L.sort((a,b)=>a[0]-b[0]);window._tlog=L.map(a=>[new Date(a[0]*60000).toISOString(),a[1],a[2],a[3],a[4],null,null])}
+  if(fresh&&!o.keep){$('slk').value=ext.likes?ext.likes.rows[ext.likes.rows.length-1].tot:'';$('scm').value=ext.comments?ext.comments.rows[ext.comments.rows.length-1].tot:'';$('ssh').value=ext.shares?ext.shares.rows[ext.shares.rows.length-1].tot:''}}else window._tlog=null;
+ const tSer=window._tlog?serOf(window._tlog):null;
+ $('pnote').innerHTML=rw.length?`Read <b>${rw.length} scans</b>, <b>${nf(sv)} views</b>${hasT?' from '+fmtS(new Date(Math.min(...rw.map(r=>r.t))*60000))+' to '+fmtS(new Date(Math.max(...rw.map(r=>r.t))*60000)):', no times'}${$('base').checked?` · scan 1 (${nf(rw[0].v)} views) treated as the starting count, so growth is measured on the other ${nf(sv-rw[0].v)}`:''}.`+(rw.notes||[]).filter(n=>!/^Engagement read/.test(n)).map(n=>'<br>'+n).join('')+engNote:'';
  const sb=sub(),eng=sb.l!=null||sb.c!=null||sb.s!=null?{l:sb.l||0,c:sb.c||0,s:sb.s||0}:null,r=score(rw,{base:$('base').checked,eng});if(r.err){$('res').innerHTML='<p>'+r.err+'</p>';window._exr=null;window._rad=null;render();return}
- const rpts=(r.first?[{t:r.first.t,c:r.B}]:[{t:r.O,c:0}]).concat(r.rows.map((q,i)=>({t:q.t,c:r.B+r.c[i]}))),RD=radar(rpts,radOpt({eng,series:o.series||SER,step:!!o.step}));window._rin={pts:rpts,eng,series:o.series||SER};window._rad=RD.err?null:RD;
+ const rpts=(r.first?[{t:r.first.t,c:r.B}]:[{t:r.O,c:0}]).concat(r.rows.map((q,i)=>({t:q.t,c:r.B+r.c[i]}))),RD=radar(rpts,radOpt({eng,series:o.series||tSer||SER,step:!!o.step}));window._rin={pts:rpts,eng,series:o.series||tSer||SER};window._rad=RD.err?null:RD;
  window._exr=r;if(fresh)hov=null;render();
- const RDx=window._rad||{score:r.bot,tier:r.tier=='Critical'?'High':r.tier,reasons:[],early:false},colr=RDx.tier=='Low'?'--ok':RDx.tier=='Medium'?'--md':'--hi',cp=compare(r,tgt),act=RDx.tier=='High'?'Flag':RDx.tier=='Medium'?'Hold for review':RDx.early?'Hold (too early)':'Pass';
- $('res').innerHTML=`<div class="score"><div class="big" style="color:var(${colr})">${RDx.score}</div><div><span class="tag" style="background:var(${colr})">${RDx.tier} bot risk</span> <strong>${act}</strong><br><small>Live bot detection (CR-style radar)${RDx.early?' · early read: under 2 days of data':''} · nearest preset: <strong>${NM[r.near]}</strong> (${r.match[r.near]}% match)</small></div></div>
+ const RDx=window._rad||{score:r.bot,tier:r.tier=='Critical'?'High':r.tier,reasons:[],early:false},colr=RDx.tier=='Low'?'--ok':RDx.tier=='Medium'?'--md':'--hi',cp=compare(r,tgt),act=RDx.tier=='High'?'Flagged':RDx.tier=='Medium'?'Hold for review':RDx.early?'Hold (too early)':'Pass';
+ $('res').innerHTML=`<div class="score"><div class="big" style="color:var(${colr})">${RDx.score}</div><div><span class="tag" style="background:var(${colr})">${RDx.tier} bot risk</span> <strong>${act}</strong>${RDx.reason&&RDx.tier!='Low'?' · Reason: <strong>'+RDx.reason+'</strong>':''}<br><small>Live bot detection (CR-style radar)${RDx.early?' · early read: under 2 days of data':''} · nearest preset: <strong>${NM[r.near]}</strong> (${r.match[r.near]}% match)</small></div></div>
  <div class="sv" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="pnm" placeholder="Name for this shape" style="width:200px"><button class="b alt" id="psave">Save as preset</button><span id="pmsg" style="font-size:13px;color:var(--mut)"></span></div>
  <h2 style="margin-top:12px" id="why">Why</h2><ul class="fl why">${RDx.reasons.length?RDx.reasons.map(x=>`<li><b>${x.label}:</b> ${x.txt}</li>`).join(''):'<li>No bot signals triggered.</li>'}</ul>
  <details><summary>Every radar signal</summary><div class="tw" style="margin-top:6px"><table><thead><tr><th>Signal</th><th>Reading</th><th class="n">Strength</th><th class="n">Weight</th></tr></thead><tbody>${(RDx.signals||[]).map(x=>`<tr><td>${x.label}</td><td>${x.val}</td><td class="n">${Math.round(x.s*100)}%</td><td class="n">${Math.round(x.w*100)}%</td></tr>`).join('')}</tbody></table></div>
- <p><small>Calibrated on 7 real Content Rewards reviews (5 high bot risk, 2 approved). Each signal acts like a separate alarm: risk = 1 − (1 − weight × strength) multiplied across signals. 0–34 Low, 35–59 Medium, 60+ High. Likes, comments and shares over time are only checked on Live reels or saved live graphs.</small></p></details>
+ <p><small>Calibrated on 7 real Content Rewards reviews (5 high bot risk, 2 approved). Each signal acts like a separate alarm: risk = 1 − (1 − weight × strength) multiplied across signals. 0–34 Low, 35–59 Medium, 60+ High. Likes, comments and shares over time are checked whenever the log has them: Live reels, saved live graphs, or a pasted log with likes, comments and shares.</small></p></details>
  <details><summary>Preset shape checks (shape score ${r.bot})</summary><ul class="fl">${r.flags.length?r.flags.map(f=>'<li>'+f.t+'</li>').join(''):'<li>No shape flags triggered.</li>'}</ul></details>
- <div class="sec">${h2h(r,cp)}</div><div class="sec" id="tsec"></div>
+ <div class="sec" id="h2hs">${h2h(r,cp)}</div><div class="sec" id="tsec"></div>
  <details><summary>Shape match to every preset</summary><div class="tw" style="margin-top:6px"><table><tbody>${NM.map((n,g)=>`<tr><td>${n}</td><td class="n">${r.match[g]}%</td></tr>`).join('')}</tbody></table></div></details>
  <details><summary>How the bot score was built</summary><div class="tw" style="margin-top:6px"><table><thead><tr><th>Check</th><th class="n">Value</th><th class="n">Risk points</th></tr></thead><tbody>${r.comp.map(x=>`<tr><td>${x.k}</td><td class="n">${x.val}</td><td class="n">${x.pts.toFixed(1)} / ${x.w}</td></tr>`).join('')}</tbody></table></div>
  <p><small>Score = 75% from the checks above (${r.F.toFixed(0)}) + 25% from the nearest presets’ risk (${r.prior.toFixed(0)}). 0 to 30 Pass, 31 to 60 Hold for review, 61 and up Flag. This reads the view-growth shape only. Engagement ratios, sources and the creator’s history still decide the close calls.</small></p></details>`;
- renderTarget();bindPresetSave()}
+ updH2h();renderTarget();bindPresetSave()}
 function h2h(e,c){const G=e.tot,B=e.B,nm=NM[c.g],at=x=>e.hasT?fmtS(new Date((e.O+x*e.Tg)*60000)):'scan '+Math.max(1,Math.round(e.O+x*e.Tg+1)),pc=x=>Math.round(x*100)+'%';
  const pts=d=>(d>=0?'+':'−')+Math.abs(d*100).toFixed(1)+' pts',cls=d=>Math.abs(d)<0.02?'':d>0?'pos':'neg';
  const tips=[];c.runs.filter(r=>Math.abs(r.d)>=0.03).slice(0,5).forEach(r=>tips.push(`<b>${at(r.a/12)} to ${at(r.b/12)}</b> (${pc(r.a/12)} to ${pc(r.b/12)} of growth): the clipper added ${nf(r.c*G)} views, ${nm} adds ${nf(r.p*G)}. ${r.d<0?'Short':'Over'} by ${nf(Math.abs(r.d)*G)} (${pts(r.d)}). ${r.d<0?'Views arrive too slowly here.':'Views arrive too fast here.'}`));
@@ -681,7 +787,7 @@ function api(p){if(!LV.url)return Promise.reject(new Error('Connect the tracker 
 function logRows(log){let pv=null;const out=[];log.forEach(a=>{const t=Date.parse(a[0])/60000,v=a[1];if(v==null||isNaN(t))return;if(pv===null){out.push({i:1,v,t,c:v});pv=v;return}if(v<=pv)return;out.push({i:out.length+1,v:v-pv,t,c:v});pv=v});return out}
 function engOf(sub){if(sub.sim&&LV.logs[sub.id]){const L=LV.logs[sub.id],l=L[L.length-1];if(l){sub.views=l[1];sub.likes=l[2];sub.comments=l[3];sub.shares=l[4];sub.saves=l[5];sub.reach=l[6]}}
  return sub.likes!=null||sub.comments!=null||sub.shares!=null?{l:sub.likes||0,c:sub.comments||0,s:sub.shares||0}:null}
-const serOf=log=>({likes:log.map(a=>({t:Date.parse(a[0])/60000,c:a[2]})),comments:log.map(a=>({t:Date.parse(a[0])/60000,c:a[3]})),shares:log.map(a=>({t:Date.parse(a[0])/60000,c:a[4]}))});
+const serOf=log=>({views:log.map(a=>({t:Date.parse(a[0])/60000,c:a[1]})),likes:log.map(a=>({t:Date.parse(a[0])/60000,c:a[2]})),comments:log.map(a=>({t:Date.parse(a[0])/60000,c:a[3]})),shares:log.map(a=>({t:Date.parse(a[0])/60000,c:a[4]}))});
 function extRows(rw,s){const lc=s&&s.lastCheck?Date.parse(s.lastCheck)/60000:null;if(rw.length&&lc&&lc>rw[rw.length-1].t+1)return rw.concat([{i:rw.length+1,v:0,t:lc,c:rw[rw.length-1].c}]);return rw}
 function judge(sub,log){const rw=extRows(logRows(log),sub);if(rw.length<5)return{wait:1,n:rw.length};const R=radar(rw.map(q=>({t:q.t,c:q.c})),radOpt({eng:engOf(sub),series:serOf(log),step:false}));return R.err?{wait:1,n:rw.length}:R}
 const VERD=j=>!j?['pd','Loading…']:j.wait?['pd','Collecting data']:j.tier=='High'?['hi','High risk · '+j.score+(j.early?' (early)':'')]:j.tier=='Medium'?['md','Medium · '+j.score+(j.early?' (early)':'')]:['lo','Low · '+j.score+(j.early?' (early)':'')];
@@ -732,7 +838,8 @@ const MET={views:{i:1,nm:'Views',cl:'#6aa7f5'},likes:{i:2,nm:'Likes',cl:'#ff6f91
 function livePts(L,s){const last=[];const out=[];L.forEach(a=>{const t=Date.parse(a[0])/60000;if(isNaN(t))return;for(let k=1;k<7;k++)if(a[k]!=null)last[k]=a[k];out.push({t,v:last.slice()})});
  const lc=s&&s.lastCheck?Date.parse(s.lastCheck)/60000:null;if(out.length&&lc&&lc>out[out.length-1].t+1)out.push({t:lc,v:out[out.length-1].v.slice()});return out}
 const erCR=v=>v[1]>0?((v[2]||0)+(v[3]||0)+(v[4]||0))/v[1]:null,erAll=v=>v[1]>0?((v[2]||0)+(v[3]||0)+(v[4]||0)+(v[5]||0))/v[1]:null;
-function buildMetric(){const s=LV.cur,m=MET[pillM],cr=pov=='cr',pts=livePts(LV.logs[LV.sel]||[],s);if(pts.length<2)return null;
+function metSrc(){if(cur==7)return{log:LV.logs[LV.sel]||[],s:LV.cur};if(cur==6)return{log:window._tlog||[],s:null};return{log:(window._plog||[]).slice(0,shown+1),s:null}}
+function buildMetric(){const src=metSrc(),s=src.s,m=MET[pillM],cr=pov=='cr',pts=livePts(src.log,s);if(!m||pts.length<2)return null;
  const x0=pts[0].t,x1=pts[pts.length-1].t,span=x1-x0||1,pl=q=>{const d=new Date(q.x1*60000);return span>2880?MO[d.getMonth()]+' '+d.getDate():hm(d)},T=q=>ttl(q.x1,span);
  if(pillM=='eng'){const P=crThinPts(pts.map(p=>({t:p.t,a:erCR(p.v),b:erAll(p.v)})).filter(p=>p.a!=null));if(P.length<2)return null;
   const sc=P.map((p,i)=>({x0:i?P[i-1].t:p.t,x1:p.t,c:p.a,b:p.b,txt:`${fmtS(new Date(p.t*60000))} · engagement ${(p.a*100).toFixed(1)}% (incl. saves ${(p.b*100).toFixed(1)}%)`}));
@@ -791,13 +898,13 @@ function thin(a,n){if(!a||a.length<=n)return a;const o=[],st=(a.length-1)/(n-1);
 $('saveb').onclick=()=>{const e=window._exr;if(!e)return;const sb=sub();let text,series=null,link='';
  if(cur==7&&LV.cur){const log=LV.logs[LV.cur.id]||[],rw=logRows(log);text=rw.map((q,i)=>`${i+1}\n${fmtS(new Date(q.t*60000))}\n+${q.v}\n=${q.c}`).join('\n');const sr=serOf(thin(log,600));series=sr;link=LV.cur.link}
  else{text=$('paste').value;series=SER}
- const a=svGet(),item={id:Date.now().toString(36),name:sb.name||'Clip',saved:new Date().toISOString(),text,base:$('base').checked,eng:{l:sb.l,c:sb.c,s:sb.s},cpm:sb.cpm,cap:sb.cap,date:sb.date,series,link};
+ const a=svGet(),item={id:Date.now().toString(36),name:sb.name||'Clip',saved:new Date().toISOString(),text,elogs:{l:$('plk').value,c:$('pcm').value,s:$('psh').value},base:$('base').checked,eng:{l:sb.l,c:sb.c,s:sb.s},cpm:sb.cpm,cap:sb.cap,date:sb.date,series,link};
  a.unshift(item);if(!svSet(a.slice(0,40))){$('saveb').textContent='Storage full';return}$('saveb').textContent='Saved ✓';setTimeout(()=>$('saveb').textContent='Save graph',1500);drawSaved()};
 function drawSaved(){const a=svGet(),cp=cpGet();$('svl').innerHTML=(cp.length?'<b>Your presets</b>'+cp.map(x=>`<div class="sv"><span>${esc(x.name)} · bot score when saved ${x.prior}</span><button data-cp="${esc(x.name)}">Delete</button></div>`).join(''):'')+(a.length?'<b>Saved graphs</b>'+a.map(x=>`<div class="sv"><span>${esc(x.name)} · saved ${fmtS(new Date(x.saved))}${x.series?' · with likes/comments/shares':''}</span><button data-ld="${x.id}">Load and compare</button><button data-dl="${x.id}">Delete</button></div>`).join(''):'');
  $('svl').querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{try{localStorage.setItem(CPK,JSON.stringify(cpGet().filter(x=>x.name!=b.dataset.cp)))}catch(e){}location.reload()});$('svl').querySelectorAll('[data-ld]').forEach(b=>b.onclick=()=>loadSaved(b.dataset.ld));$('svl').querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{svSet(svGet().filter(x=>x.id!=b.dataset.dl));drawSaved()})}
-function loadSaved(id){const x=svGet().find(q=>q.id==id);if(!x)return;if(cur!=6)tab(6);$('paste').value=x.text;$('sname').value=x.name||'';$('sdate').value=x.date||'';$('slk').value=x.eng&&x.eng.l!=null?x.eng.l:'';$('scm').value=x.eng&&x.eng.c!=null?x.eng.c:'';$('ssh').value=x.eng&&x.eng.s!=null?x.eng.s:'';$('scpm').value=x.cpm??'';$('scap').value=x.cap??'';
+function loadSaved(id){const x=svGet().find(q=>q.id==id);if(!x)return;if(cur!=6)tab(6);$('paste').value=x.text;const el=x.elogs||{};$('plk').value=el.l||'';$('pcm').value=el.c||'';$('psh').value=el.s||'';$('sname').value=x.name||'';$('sdate').value=x.date||'';$('slk').value=x.eng&&x.eng.l!=null?x.eng.l:'';$('scm').value=x.eng&&x.eng.c!=null?x.eng.c:'';$('ssh').value=x.eng&&x.eng.s!=null?x.eng.s:'';$('scpm').value=x.cpm??'';$('scap').value=x.cap??'';
  SER=x.series||null;lastTxt=null;doScore({base:x.base});$('base').checked=x.base;doScore({keep:1})}
-$('paste').addEventListener('input',()=>{SER=null});
+['paste','plk','pcm','psh'].forEach(id=>$(id).addEventListener('input',()=>{SER=null}));
 const capSync=v=>{LS.set('payout_cap',v);$('scap').value=v;$('lvcap').value=v};capSync(LS.get('payout_cap'));
 $('lvcap').addEventListener('input',()=>{capSync($('lvcap').value);renderReview()});$('scap').addEventListener('input',()=>{LS.set('payout_cap',$('scap').value);$('lvcap').value=$('scap').value;renderReview()});
 drawSaved();
